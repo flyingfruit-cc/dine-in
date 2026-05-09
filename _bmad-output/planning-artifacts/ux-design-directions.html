@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>dine-in-cc — UX Design Directions</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif; background: #F5F5F7; color: #1D1D1F; }
+
+  /* Layout */
+  .page-header { background: #1D1D1F; color: #F5F5F7; padding: 40px 48px; }
+  .page-header h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.5px; }
+  .page-header p { font-size: 17px; color: #AEAEB2; margin-top: 8px; }
+  .nav-tabs { display: flex; gap: 8px; padding: 24px 48px 0; background: #1D1D1F; overflow-x: auto; }
+  .nav-tab { padding: 10px 20px; border-radius: 8px 8px 0 0; font-size: 14px; font-weight: 500; cursor: pointer; border: none; background: #2C2C2E; color: #AEAEB2; white-space: nowrap; }
+  .nav-tab.active { background: #F5F5F7; color: #1D1D1F; }
+  .section { display: none; padding: 40px 48px; }
+  .section.active { display: block; }
+  .section-title { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+  .section-desc { font-size: 15px; color: #6E6E73; margin-bottom: 32px; max-width: 640px; }
+  .mockup-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; }
+  .mockup-label { font-size: 13px; font-weight: 600; color: #6E6E73; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+  .phone-frame { width: 320px; height: 640px; border-radius: 40px; overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.08); margin: 0 auto; position: relative; }
+  .device-label { font-size: 11px; color: #AEAEB2; text-align: center; margin-top: 12px; }
+
+  /* ── DIRECTION 1: Pure Apple — Light Customer Menu ── */
+  .d1-menu { background: #FFFFFF; height: 100%; display: flex; flex-direction: column; }
+  .d1-header { padding: 52px 20px 12px; border-bottom: 1px solid #D2D2D7; }
+  .d1-restaurant { font-size: 22px; font-weight: 700; color: #1D1D1F; }
+  .d1-table { font-size: 13px; color: #6E6E73; margin-top: 2px; }
+  .d1-cats { display: flex; gap: 0; overflow-x: auto; padding: 0 20px; border-bottom: 1px solid #D2D2D7; }
+  .d1-cat { padding: 12px 16px; font-size: 15px; font-weight: 500; color: #6E6E73; white-space: nowrap; border-bottom: 2px solid transparent; flex-shrink: 0; }
+  .d1-cat.active { color: #FF6B35; border-bottom-color: #FF6B35; }
+  .d1-items { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; }
+  .d1-item { display: flex; gap: 12px; align-items: center; }
+  .d1-img { width: 80px; height: 80px; border-radius: 12px; background: #E8E8ED; flex-shrink: 0; object-fit: cover; }
+  .d1-img-pasta { background: linear-gradient(135deg, #E8C4A0 0%, #C4955A 100%); }
+  .d1-img-salad { background: linear-gradient(135deg, #B8D4A8 0%, #6B9E5C 100%); }
+  .d1-img-water { background: linear-gradient(135deg, #C8E4F8 0%, #7BB8D8 100%); }
+  .d1-info { flex: 1; }
+  .d1-name { font-size: 16px; font-weight: 500; color: #1D1D1F; }
+  .d1-desc { font-size: 13px; color: #6E6E73; margin-top: 2px; line-height: 1.4; }
+  .d1-price { font-size: 15px; font-weight: 600; color: #1D1D1F; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .d1-cart { padding: 12px 20px; padding-bottom: 28px; background: #FFFFFF; border-top: 1px solid #D2D2D7; }
+  .d1-cart-btn { background: #FF6B35; color: white; border: none; border-radius: 12px; padding: 16px; width: 100%; font-size: 16px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+
+  /* ── DIRECTION 1b: Dark Admin Order Feed ── */
+  .d1-admin { background: #000000; height: 100%; display: flex; flex-direction: column; }
+  .d1-admin-header { padding: 52px 20px 16px; border-bottom: 1px solid #38383A; }
+  .d1-admin-title { font-size: 28px; font-weight: 700; color: #F5F5F7; }
+  .d1-admin-sub { font-size: 13px; color: #6E6E73; margin-top: 4px; }
+  .d1-orders { flex: 1; overflow-y: auto; padding: 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .d1-order { background: #1C1C1E; border-radius: 16px; padding: 16px; border-left: 3px solid #FF6B35; }
+  .d1-order.handled { border-left-color: #38383A; opacity: 0.5; }
+  .d1-order-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .d1-table-num { font-size: 20px; font-weight: 700; color: #F5F5F7; }
+  .d1-time { font-size: 12px; color: #6E6E73; }
+  .d1-order-items { margin-top: 8px; font-size: 14px; color: #AEAEB2; line-height: 1.5; }
+  .d1-handle-btn { margin-top: 12px; background: #FF6B35; color: white; border: none; border-radius: 10px; padding: 10px 16px; font-size: 14px; font-weight: 600; width: 100%; }
+  .d1-handle-btn.done { background: #2C2C2E; color: #6E6E73; }
+
+  /* ── DIRECTION 2: Minimal / Ultra-clean ── */
+  .d2-menu { background: #FAFAFA; height: 100%; display: flex; flex-direction: column; }
+  .d2-header { padding: 52px 24px 20px; }
+  .d2-restaurant { font-size: 28px; font-weight: 700; color: #1D1D1F; letter-spacing: -0.5px; }
+  .d2-table { font-size: 12px; color: #AEAEB2; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+  .d2-divider { height: 1px; background: #E8E8ED; margin: 0 24px; }
+  .d2-cats { display: flex; gap: 8px; padding: 16px 24px; overflow-x: auto; }
+  .d2-cat { padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; color: #6E6E73; background: transparent; border: 1px solid #D2D2D7; white-space: nowrap; flex-shrink: 0; }
+  .d2-cat.active { background: #1D1D1F; color: #FFFFFF; border-color: #1D1D1F; }
+  .d2-items { flex: 1; overflow-y: auto; padding: 0 24px 16px; }
+  .d2-section-head { font-size: 11px; font-weight: 600; color: #AEAEB2; text-transform: uppercase; letter-spacing: 1px; padding: 20px 0 12px; }
+  .d2-item { padding: 16px 0; border-bottom: 1px solid #F0F0F0; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .d2-item-left { flex: 1; }
+  .d2-item-name { font-size: 16px; font-weight: 500; color: #1D1D1F; }
+  .d2-item-desc { font-size: 13px; color: #AEAEB2; margin-top: 2px; }
+  .d2-item-price { font-size: 15px; font-weight: 600; color: #1D1D1F; white-space: nowrap; }
+  .d2-add { width: 32px; height: 32px; border-radius: 50%; background: #F5F5F7; border: none; font-size: 20px; color: #1D1D1F; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 300; }
+  .d2-cart { padding: 16px 24px 32px; }
+  .d2-cart-btn { background: #1D1D1F; color: #F5F5F7; border: none; border-radius: 14px; padding: 18px 24px; width: 100%; font-size: 16px; font-weight: 600; display: flex; justify-content: space-between; }
+
+  /* ── DIRECTION 3: Card-forward / Magazine ── */
+  .d3-menu { background: #FFFFFF; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+  .d3-header { padding: 52px 20px 16px; background: #FFFFFF; }
+  .d3-hero { width: 100%; height: 140px; background: linear-gradient(160deg, #C4955A 0%, #8B5E2C 100%); border-radius: 20px; display: flex; align-items: flex-end; padding: 16px; margin-bottom: 0; }
+  .d3-hero-text { color: white; }
+  .d3-hero-name { font-size: 20px; font-weight: 700; }
+  .d3-hero-table { font-size: 12px; opacity: 0.7; margin-top: 2px; }
+  .d3-cats { display: flex; gap: 8px; padding: 16px 20px; overflow-x: auto; }
+  .d3-cat { padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; background: #F5F5F7; color: #6E6E73; white-space: nowrap; flex-shrink: 0; }
+  .d3-cat.active { background: #FF6B35; color: white; }
+  .d3-items { flex: 1; overflow-y: auto; padding: 0 20px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .d3-card { border-radius: 16px; overflow: hidden; background: #F5F5F7; }
+  .d3-card-img { height: 120px; background: linear-gradient(135deg, #E8C4A0 0%, #C4955A 100%); }
+  .d3-card-img.g { background: linear-gradient(135deg, #B8D4A8 0%, #6B9E5C 100%); }
+  .d3-card-body { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+  .d3-card-name { font-size: 15px; font-weight: 600; color: #1D1D1F; }
+  .d3-card-price { font-size: 14px; font-weight: 600; color: #FF6B35; }
+  .d3-cart { padding: 12px 20px 28px; border-top: 1px solid #E8E8ED; }
+  .d3-cart-btn { background: #FF6B35; color: white; border: none; border-radius: 14px; padding: 16px; width: 100%; font-size: 16px; font-weight: 600; }
+
+  /* ── DIRECTION 4: Admin — Compact List ── */
+  .d4-admin { background: #000000; height: 100%; display: flex; flex-direction: column; }
+  .d4-header { padding: 52px 20px 12px; }
+  .d4-title { font-size: 22px; font-weight: 700; color: #F5F5F7; }
+  .d4-badge { display: inline-block; background: #FF6B35; color: white; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 8px; vertical-align: middle; }
+  .d4-tabs { display: flex; padding: 12px 20px; gap: 8px; border-bottom: 1px solid #38383A; }
+  .d4-tab { font-size: 14px; font-weight: 500; color: #6E6E73; padding: 6px 12px; border-radius: 8px; }
+  .d4-tab.active { background: #2C2C2E; color: #F5F5F7; }
+  .d4-orders { flex: 1; overflow-y: auto; }
+  .d4-order { padding: 16px 20px; border-bottom: 1px solid #1C1C1E; display: flex; gap: 12px; align-items: flex-start; }
+  .d4-dot { width: 8px; height: 8px; border-radius: 50%; background: #FF6B35; margin-top: 6px; flex-shrink: 0; }
+  .d4-dot.done { background: #38383A; }
+  .d4-order-info { flex: 1; }
+  .d4-order-top { display: flex; justify-content: space-between; }
+  .d4-order-table { font-size: 16px; font-weight: 700; color: #F5F5F7; }
+  .d4-order-time { font-size: 12px; color: #6E6E73; }
+  .d4-order-items { font-size: 13px; color: #AEAEB2; margin-top: 4px; line-height: 1.4; }
+  .d4-done { font-size: 13px; font-weight: 600; color: #FF6B35; margin-top: 6px; }
+  .d4-done.handled { color: #38383A; }
+
+  /* ── DIRECTION 5: Bottom Sheet Detail ── */
+  .d5-sheet { background: #FFFFFF; height: 100%; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+  .d5-menu-bg { flex: 1; padding: 52px 20px 0; overflow-y: auto; }
+  .d5-menu-header { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .d5-menu-sub { font-size: 13px; color: #6E6E73; margin-bottom: 20px; }
+  .d5-item-row { display: flex; gap: 12px; padding: 14px 0; border-bottom: 1px solid #F0F0F0; align-items: center; }
+  .d5-item-img { width: 64px; height: 64px; border-radius: 10px; background: linear-gradient(135deg, #E8C4A0 0%, #C4955A 100%); flex-shrink: 0; }
+  .d5-item-img.g2 { background: linear-gradient(135deg, #B8D4A8 0%, #6B9E5C 100%); }
+  .d5-item-text { flex: 1; }
+  .d5-item-name { font-size: 15px; font-weight: 500; }
+  .d5-item-price { font-size: 14px; color: #6E6E73; margin-top: 2px; }
+  .d5-plus { width: 28px; height: 28px; border-radius: 50%; background: #FF6B351A; color: #FF6B35; font-size: 18px; display: flex; align-items: center; justify-content: center; border: none; }
+  /* Bottom sheet overlay */
+  .d5-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.4); top: 200px; display: flex; align-items: flex-end; }
+  .d5-bottom-sheet { background: #FFFFFF; border-radius: 24px 24px 0 0; padding: 12px 20px 32px; width: 100%; }
+  .d5-sheet-handle { width: 36px; height: 4px; background: #D2D2D7; border-radius: 2px; margin: 0 auto 20px; }
+  .d5-sheet-img { width: 100%; height: 120px; border-radius: 16px; background: linear-gradient(135deg, #E8C4A0 0%, #C4955A 100%); margin-bottom: 16px; }
+  .d5-sheet-name { font-size: 20px; font-weight: 700; }
+  .d5-sheet-price { font-size: 17px; color: #FF6B35; font-weight: 600; margin-top: 4px; }
+  .d5-sheet-desc { font-size: 14px; color: #6E6E73; margin-top: 8px; line-height: 1.5; }
+  .d5-variants { margin-top: 16px; }
+  .d5-variant-label { font-size: 13px; font-weight: 600; color: #1D1D1F; margin-bottom: 8px; }
+  .d5-variant-opts { display: flex; gap: 8px; }
+  .d5-variant-opt { padding: 8px 14px; border-radius: 8px; font-size: 13px; border: 1.5px solid #D2D2D7; color: #1D1D1F; }
+  .d5-variant-opt.selected { border-color: #FF6B35; color: #FF6B35; background: #FFF0EB; }
+  .d5-add-btn { margin-top: 16px; background: #FF6B35; color: white; border: none; border-radius: 12px; padding: 16px; width: 100%; font-size: 16px; font-weight: 600; }
+
+  /* ── DIRECTION 6: Confirmation Screen ── */
+  .d6-confirm { background: #FFFFFF; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 32px; text-align: center; }
+  .d6-icon { width: 80px; height: 80px; border-radius: 50%; background: #F0FBF2; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; }
+  .d6-check { font-size: 36px; }
+  .d6-headline { font-size: 28px; font-weight: 700; color: #1D1D1F; line-height: 1.2; letter-spacing: -0.3px; }
+  .d6-sub { font-size: 16px; color: #6E6E73; margin-top: 12px; line-height: 1.5; }
+  .d6-divider { height: 1px; background: #E8E8ED; width: 100%; margin: 28px 0; }
+  .d6-order-summary { width: 100%; text-align: left; }
+  .d6-summary-title { font-size: 13px; font-weight: 600; color: #AEAEB2; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+  .d6-summary-item { display: flex; justify-content: space-between; font-size: 15px; color: #1D1D1F; padding: 4px 0; }
+  .d6-summary-item span:last-child { color: #6E6E73; }
+  .d6-table-tag { margin-top: 24px; background: #F5F5F7; border-radius: 10px; padding: 10px 16px; font-size: 13px; color: #6E6E73; width: 100%; }
+  .d6-table-tag strong { color: #1D1D1F; }
+
+  /* ── DIRECTION 6b: Admin — Split Desktop view ── */
+  .desktop-frame { width: 100%; max-width: 680px; height: 420px; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,0.18); background: #000000; margin: 0 auto; display: flex; }
+  .desktop-sidebar { width: 240px; background: #1C1C1E; border-right: 1px solid #38383A; display: flex; flex-direction: column; }
+  .desktop-sidebar-header { padding: 20px 16px 12px; font-size: 17px; font-weight: 700; color: #F5F5F7; border-bottom: 1px solid #38383A; }
+  .desktop-sidebar-sub { font-size: 11px; color: #6E6E73; margin-top: 2px; }
+  .desktop-order-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .desktop-order-item { padding: 10px 12px; border-radius: 10px; margin-bottom: 4px; cursor: pointer; }
+  .desktop-order-item.active { background: #2C2C2E; }
+  .desktop-order-item.new { border-left: 2px solid #FF6B35; }
+  .desktop-order-table { font-size: 14px; font-weight: 700; color: #F5F5F7; }
+  .desktop-order-preview { font-size: 12px; color: #6E6E73; margin-top: 2px; }
+  .desktop-order-time { font-size: 11px; color: #AEAEB2; margin-top: 2px; }
+  .desktop-main { flex: 1; padding: 20px; display: flex; flex-direction: column; }
+  .desktop-main-table { font-size: 28px; font-weight: 700; color: #F5F5F7; }
+  .desktop-main-time { font-size: 13px; color: #6E6E73; margin-top: 4px; }
+  .desktop-items { margin-top: 16px; flex: 1; }
+  .desktop-item-row { padding: 8px 0; border-bottom: 1px solid #2C2C2E; font-size: 14px; color: #AEAEB2; display: flex; justify-content: space-between; }
+  .desktop-item-row strong { color: #F5F5F7; }
+  .desktop-handle { margin-top: 16px; background: #FF6B35; color: white; border: none; border-radius: 10px; padding: 12px; width: 100%; font-size: 15px; font-weight: 600; }
+
+  /* Evaluation guide */
+  .eval-section { background: #FFFFFF; border-radius: 20px; padding: 32px; margin-top: 40px; }
+  .eval-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+  .eval-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  .eval-item { background: #F5F5F7; border-radius: 12px; padding: 16px; }
+  .eval-item h4 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .eval-item p { font-size: 13px; color: #6E6E73; line-height: 1.4; }
+
+  @media (max-width: 600px) {
+    .page-header, .nav-tabs, .section { padding-left: 20px; padding-right: 20px; }
+    .phone-frame { width: 100%; max-width: 320px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>dine-in-cc — Design Directions</h1>
+  <p>6 visual directions exploring different approaches for the customer flow and Admin UI</p>
+</div>
+
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="showSection('customer')">Customer Flow</button>
+  <button class="nav-tab" onclick="showSection('admin')">Admin Order Feed</button>
+  <button class="nav-tab" onclick="showSection('bottomsheet')">Item Config</button>
+  <button class="nav-tab" onclick="showSection('confirmation')">Confirmation</button>
+  <button class="nav-tab" onclick="showSection('desktop')">Desktop Admin</button>
+  <button class="nav-tab" onclick="showSection('evaluate')">Evaluate</button>
+</div>
+
+<!-- ══ CUSTOMER FLOW ══ -->
+<div class="section active" id="customer">
+  <div class="section-title">Customer Menu — 3 Directions</div>
+  <div class="section-desc">All three show the same content (Pasta category). Evaluate layout, density, and how food photos are used. Which feels most natural for a diner at a table?</div>
+
+  <div class="mockup-grid">
+
+    <!-- D1: Pure Apple -->
+    <div>
+      <div class="mockup-label">Direction 1 — Classic Apple</div>
+      <div class="phone-frame">
+        <div class="d1-menu">
+          <div class="d1-header">
+            <div class="d1-restaurant">Marco's Trattoria</div>
+            <div class="d1-table">Table 6</div>
+          </div>
+          <div class="d1-cats">
+            <div class="d1-cat active">Pasta</div>
+            <div class="d1-cat">Mains</div>
+            <div class="d1-cat">Sides</div>
+            <div class="d1-cat">Drinks</div>
+          </div>
+          <div class="d1-items">
+            <div class="d1-item">
+              <div class="d1-img d1-img-pasta"></div>
+              <div class="d1-info">
+                <div class="d1-name">Spaghetti Carbonara</div>
+                <div class="d1-desc">Pancetta, egg, pecorino, black pepper</div>
+                <div class="d1-price">€14.00</div>
+              </div>
+            </div>
+            <div class="d1-item">
+              <div class="d1-img d1-img-salad"></div>
+              <div class="d1-info">
+                <div class="d1-name">Caesar Salad</div>
+                <div class="d1-desc">Romaine, anchovy dressing, parmesan</div>
+                <div class="d1-price">€11.00</div>
+              </div>
+            </div>
+            <div class="d1-item">
+              <div class="d1-img d1-img-water"></div>
+              <div class="d1-info">
+                <div class="d1-name">Sparkling Water</div>
+                <div class="d1-desc">500ml bottle</div>
+                <div class="d1-price">€3.50</div>
+              </div>
+            </div>
+          </div>
+          <div class="d1-cart">
+            <button class="d1-cart-btn">
+              <span>2 items</span>
+              <span>Review Order →</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="device-label">Horizontal category tabs · Image + text rows · Orange CTA</div>
+    </div>
+
+    <!-- D2: Minimal -->
+    <div>
+      <div class="mockup-label">Direction 2 — Ultra Minimal</div>
+      <div class="phone-frame">
+        <div class="d2-menu">
+          <div class="d2-header">
+            <div class="d2-restaurant">Marco's Trattoria</div>
+            <div class="d2-table">Table 6</div>
+          </div>
+          <div class="d2-divider"></div>
+          <div class="d2-cats">
+            <div class="d2-cat active">Pasta</div>
+            <div class="d2-cat">Mains</div>
+            <div class="d2-cat">Sides</div>
+            <div class="d2-cat">Drinks</div>
+          </div>
+          <div class="d2-items">
+            <div class="d2-section-head">Pasta</div>
+            <div class="d2-item">
+              <div class="d2-item-left">
+                <div class="d2-item-name">Spaghetti Carbonara</div>
+                <div class="d2-item-desc">Pancetta, egg, pecorino, black pepper</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div class="d2-item-price">€14</div>
+                <button class="d2-add">+</button>
+              </div>
+            </div>
+            <div class="d2-item">
+              <div class="d2-item-left">
+                <div class="d2-item-name">Caesar Salad</div>
+                <div class="d2-item-desc">Romaine, anchovy, parmesan</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div class="d2-item-price">€11</div>
+                <button class="d2-add">+</button>
+              </div>
+            </div>
+            <div class="d2-item">
+              <div class="d2-item-left">
+                <div class="d2-item-name">Sparkling Water</div>
+                <div class="d2-item-desc">500ml</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div class="d2-item-price">€3.50</div>
+                <button class="d2-add">+</button>
+              </div>
+            </div>
+          </div>
+          <div style="padding:12px 24px 28px;border-top:1px solid #E8E8ED;">
+            <button class="d2-cart-btn">
+              <span>2 items</span>
+              <span>Review Order →</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="device-label">No images · Text-only rows · Dark CTA · Maximum density</div>
+    </div>
+
+    <!-- D3: Card / Magazine -->
+    <div>
+      <div class="mockup-label">Direction 3 — Card Forward</div>
+      <div class="phone-frame">
+        <div class="d3-menu">
+          <div class="d3-header">
+            <div class="d3-hero">
+              <div class="d3-hero-text">
+                <div class="d3-hero-name">Marco's Trattoria</div>
+                <div class="d3-hero-table">Table 6</div>
+              </div>
+            </div>
+          </div>
+          <div class="d3-cats">
+            <div class="d3-cat active">Pasta</div>
+            <div class="d3-cat">Mains</div>
+            <div class="d3-cat">Sides</div>
+            <div class="d3-cat">Drinks</div>
+          </div>
+          <div class="d3-items">
+            <div class="d3-card">
+              <div class="d3-card-img"></div>
+              <div class="d3-card-body">
+                <div>
+                  <div class="d3-card-name">Spaghetti Carbonara</div>
+                  <div style="font-size:12px;color:#6E6E73;margin-top:2px;">Pancetta · Egg · Pecorino</div>
+                </div>
+                <div class="d3-card-price">€14</div>
+              </div>
+            </div>
+            <div class="d3-card">
+              <div class="d3-card-img g"></div>
+              <div class="d3-card-body">
+                <div>
+                  <div class="d3-card-name">Caesar Salad</div>
+                  <div style="font-size:12px;color:#6E6E73;margin-top:2px;">Romaine · Anchovy · Parmesan</div>
+                </div>
+                <div class="d3-card-price">€11</div>
+              </div>
+            </div>
+          </div>
+          <div class="d3-cart">
+            <button class="d3-cart-btn">Review Order (2 items)</button>
+          </div>
+        </div>
+      </div>
+      <div class="device-label">Hero restaurant banner · Full-width image cards · Magazine feel</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ ADMIN ORDER FEED ══ -->
+<div class="section" id="admin">
+  <div class="section-title">Admin Order Feed — 2 Directions</div>
+  <div class="section-desc">Both in dark mode for service environment. Direction A uses full cards with action buttons. Direction B uses a compact list with dot indicators — faster to scan when orders are stacking up.</div>
+
+  <div class="mockup-grid">
+
+    <!-- Admin D1: Full cards -->
+    <div>
+      <div class="mockup-label">Direction A — Card Feed with Actions</div>
+      <div class="phone-frame">
+        <div class="d1-admin">
+          <div class="d1-admin-header">
+            <div class="d1-admin-title">Orders</div>
+            <div class="d1-admin-sub">Friday service · 3 active</div>
+          </div>
+          <div class="d1-orders">
+            <div class="d1-order">
+              <div class="d1-order-top">
+                <div class="d1-table-num">Table 6</div>
+                <div class="d1-time">2 min ago</div>
+              </div>
+              <div class="d1-order-items">
+                Spaghetti Carbonara (without bacon)<br>
+                Sparkling Water × 2
+              </div>
+              <button class="d1-handle-btn">Mark Handled</button>
+            </div>
+            <div class="d1-order">
+              <div class="d1-order-top">
+                <div class="d1-table-num">Table 9</div>
+                <div class="d1-time">5 min ago</div>
+              </div>
+              <div class="d1-order-items">
+                Caesar Salad<br>
+                Spaghetti Carbonara × 2
+              </div>
+              <button class="d1-handle-btn">Mark Handled</button>
+            </div>
+            <div class="d1-order handled">
+              <div class="d1-order-top">
+                <div class="d1-table-num">Table 3</div>
+                <div class="d1-time">12 min ago</div>
+              </div>
+              <div class="d1-order-items">Sparkling Water</div>
+              <button class="d1-handle-btn done">Handled ✓</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="device-label">Full order cards · Inline action buttons · New-order left border</div>
+    </div>
+
+    <!-- Admin D2: Compact list -->
+    <div>
+      <div class="mockup-label">Direction B — Compact List Feed</div>
+      <div class="phone-frame">
+        <div class="d4-admin">
+          <div class="d4-header">
+            <div class="d4-title">Orders <span class="d4-badge">3</span></div>
+          </div>
+          <div class="d4-tabs">
+            <div class="d4-tab active">Active</div>
+            <div class="d4-tab">Handled</div>
+            <div class="d4-tab">All</div>
+          </div>
+          <div class="d4-orders">
+            <div class="d4-order">
+              <div class="d4-dot"></div>
+              <div class="d4-order-info">
+                <div class="d4-order-top">
+                  <div class="d4-order-table">Table 6</div>
+                  <div class="d4-order-time">2 min ago</div>
+                </div>
+                <div class="d4-order-items">Carbonara (no bacon) · Water ×2</div>
+                <div class="d4-done">→ Mark handled</div>
+              </div>
+            </div>
+            <div class="d4-order">
+              <div class="d4-dot"></div>
+              <div class="d4-order-info">
+                <div class="d4-order-top">
+                  <div class="d4-order-table">Table 9</div>
+                  <div class="d4-order-time">5 min ago</div>
+                </div>
+                <div class="d4-order-items">Caesar Salad · Carbonara ×2</div>
+                <div class="d4-done">→ Mark handled</div>
+              </div>
+            </div>
+            <div class="d4-order" style="opacity:0.4">
+              <div class="d4-dot done"></div>
+              <div class="d4-order-info">
+                <div class="d4-order-top">
+                  <div class="d4-order-table">Table 3</div>
+                  <div class="d4-order-time">12 min ago</div>
+                </div>
+                <div class="d4-order-items">Sparkling Water</div>
+                <div class="d4-done handled">Handled ✓</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="device-label">Compact rows · Status dot · Active/Handled tabs · More orders visible</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ BOTTOM SHEET ══ -->
+<div class="section" id="bottomsheet">
+  <div class="section-title">Item Configuration — Bottom Sheet</div>
+  <div class="section-desc">This is the confirmed pattern (Direction 1 from Step 7). The bottom sheet slides up over the menu, keeping the user in context. Evaluate the sheet layout and variant selection.</div>
+
+  <div class="mockup-grid" style="justify-items:center;">
+    <div>
+      <div class="mockup-label">Bottom Sheet — Variant Selection</div>
+      <div class="phone-frame">
+        <div class="d5-sheet">
+          <div class="d5-menu-bg">
+            <div class="d5-menu-header">Pasta</div>
+            <div class="d5-menu-sub">Marco's Trattoria · Table 6</div>
+            <div class="d5-item-row">
+              <div class="d5-item-img"></div>
+              <div class="d5-item-text">
+                <div class="d5-item-name">Spaghetti Carbonara</div>
+                <div class="d5-item-price">€14.00</div>
+              </div>
+              <button class="d5-plus">+</button>
+            </div>
+            <div class="d5-item-row">
+              <div class="d5-item-img g2"></div>
+              <div class="d5-item-text">
+                <div class="d5-item-name">Caesar Salad</div>
+                <div class="d5-item-price">€11.00</div>
+              </div>
+              <button class="d5-plus">+</button>
+            </div>
+          </div>
+          <div class="d5-overlay">
+            <div class="d5-bottom-sheet">
+              <div class="d5-sheet-handle"></div>
+              <div class="d5-sheet-img"></div>
+              <div class="d5-sheet-name">Spaghetti Carbonara</div>
+              <div class="d5-sheet-price">€14.00</div>
+              <div class="d5-sheet-desc">Pancetta, egg, pecorino romano, cracked black pepper. Classic Roman preparation.</div>
+              <div class="d5-variants">
+                <div class="d5-variant-label">Modifications</div>
+                <div class="d5-variant-opts">
+                  <div class="d5-variant-opt selected">With bacon</div>
+                  <div class="d5-variant-opt">Without bacon</div>
+                </div>
+              </div>
+              <button class="d5-add-btn">Add to Order</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="device-label">Sheet slides over menu · Food photo · Variant chips · Single CTA</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CONFIRMATION ══ -->
+<div class="section" id="confirmation">
+  <div class="section-title">Order Confirmation Screen</div>
+  <div class="section-desc">This is Aisha's last screen — the most important trust moment. Evaluate: does it feel final and reassuring? Is "the kitchen" clear? Is there anything that feels uncertain?</div>
+
+  <div class="mockup-grid" style="justify-items:center;">
+    <div>
+      <div class="mockup-label">Order Confirmation</div>
+      <div class="phone-frame">
+        <div class="d6-confirm">
+          <div class="d6-icon">
+            <span class="d6-check">✓</span>
+          </div>
+          <div class="d6-headline">Your order is with the kitchen</div>
+          <div class="d6-sub">The kitchen has received your order. Sit back — your food is on its way.</div>
+          <div class="d6-divider"></div>
+          <div class="d6-order-summary">
+            <div class="d6-summary-title">Your order</div>
+            <div class="d6-summary-item">
+              <span>Spaghetti Carbonara</span>
+              <span>without bacon</span>
+            </div>
+            <div class="d6-summary-item">
+              <span>Sparkling Water</span>
+              <span>×2</span>
+            </div>
+          </div>
+          <div class="d6-table-tag">
+            <strong>Marco's Trattoria</strong> · Table 6
+          </div>
+        </div>
+      </div>
+      <div class="device-label">Full-screen · "Kitchen" explicitly named · Order summary · No next-step prompts</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DESKTOP ADMIN ══ -->
+<div class="section" id="desktop">
+  <div class="section-title">Admin UI — Desktop Layout</div>
+  <div class="section-desc">When Marco is behind the counter with a laptop or tablet, the Admin UI can use a 2-column split: order list on the left, selected order detail on the right.</div>
+
+  <div class="desktop-frame">
+    <div class="desktop-sidebar">
+      <div class="desktop-sidebar-header">
+        Orders
+        <div class="desktop-sidebar-sub">Friday · 3 active</div>
+      </div>
+      <div class="desktop-order-list">
+        <div class="desktop-order-item active new">
+          <div class="desktop-order-table">Table 6</div>
+          <div class="desktop-order-preview">Carbonara, Water ×2</div>
+          <div class="desktop-order-time">2 min ago</div>
+        </div>
+        <div class="desktop-order-item new">
+          <div class="desktop-order-table">Table 9</div>
+          <div class="desktop-order-preview">Salad, Carbonara ×2</div>
+          <div class="desktop-order-time">5 min ago</div>
+        </div>
+        <div class="desktop-order-item" style="opacity:0.4">
+          <div class="desktop-order-table">Table 3</div>
+          <div class="desktop-order-preview">Water — handled</div>
+          <div class="desktop-order-time">12 min ago</div>
+        </div>
+      </div>
+    </div>
+    <div class="desktop-main">
+      <div class="desktop-main-table">Table 6</div>
+      <div class="desktop-main-time">Received 2 minutes ago</div>
+      <div class="desktop-items">
+        <div class="desktop-item-row">
+          <strong>Spaghetti Carbonara</strong>
+          <span>without bacon</span>
+        </div>
+        <div class="desktop-item-row">
+          <strong>Sparkling Water</strong>
+          <span>×2</span>
+        </div>
+      </div>
+      <button class="desktop-handle">Mark Handled</button>
+    </div>
+  </div>
+  <div style="text-align:center;margin-top:12px;font-size:13px;color:#6E6E73;">List left · Detail right · Single action per order</div>
+</div>
+
+<!-- ══ EVALUATE ══ -->
+<div class="section" id="evaluate">
+  <div class="section-title">Evaluation Guide</div>
+  <div class="section-desc">Use these criteria when comparing directions. Pick a favorite or mix elements across directions.</div>
+
+  <div class="eval-section">
+    <div class="eval-title">Customer Menu — What to look for</div>
+    <div class="eval-grid">
+      <div class="eval-item">
+        <h4>First impression</h4>
+        <p>Which feels most like a restaurant menu, not a software UI?</p>
+      </div>
+      <div class="eval-item">
+        <h4>Food photos</h4>
+        <p>D1 and D3 use images. D2 is text-only. Which matches your restaurant partners' content?</p>
+      </div>
+      <div class="eval-item">
+        <h4>Scan speed</h4>
+        <p>Which lets Aisha find "Spaghetti Carbonara" fastest without reading every word?</p>
+      </div>
+      <div class="eval-item">
+        <h4>Trust</h4>
+        <p>Which feels most like a place you'd comfortably place a food order?</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="eval-section" style="margin-top:24px;">
+    <div class="eval-title">Admin Order Feed — What to look for</div>
+    <div class="eval-grid">
+      <div class="eval-item">
+        <h4>Glanceability</h4>
+        <p>Which can Marco read at arm's length while walking the floor?</p>
+      </div>
+      <div class="eval-item">
+        <h4>Load capacity</h4>
+        <p>Which holds up better when 8–10 orders arrive simultaneously?</p>
+      </div>
+      <div class="eval-item">
+        <h4>Action speed</h4>
+        <p>Direction A has inline buttons. Direction B has compact text links. Which feels faster to act on?</p>
+      </div>
+      <div class="eval-item">
+        <h4>Calm</h4>
+        <p>Which feels more like a reliable kitchen window and less like an alarming inbox?</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="eval-section" style="margin-top:24px;background:#1D1D1F;color:#F5F5F7;">
+    <div class="eval-title" style="color:#F5F5F7;">Decisions to make</div>
+    <div style="font-size:15px;color:#AEAEB2;line-height:1.8;">
+      1. Customer menu: <strong style="color:#F5F5F7;">D1 (images + rows)</strong>, <strong style="color:#F5F5F7;">D2 (text-only)</strong>, or <strong style="color:#F5F5F7;">D3 (image cards)</strong>?<br>
+      2. Admin feed: <strong style="color:#F5F5F7;">Direction A (full cards)</strong> or <strong style="color:#F5F5F7;">Direction B (compact list)</strong>?<br>
+      3. Confirmation screen: any copy or layout changes?<br>
+      4. Desktop admin: does the 2-column split feel right?
+    </div>
+  </div>
+</div>
+
+<script>
+  function showSection(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>
