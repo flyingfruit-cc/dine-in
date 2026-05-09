@@ -44,3 +44,8 @@ next-env.d.ts
 .claude/
 .open-next/
 .wrangler/
+
+test-results/
+
+# MCP server config — contains project-specific refs; each developer has their own
+.mcp.json
