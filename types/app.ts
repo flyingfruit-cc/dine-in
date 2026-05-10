@@ -6,3 +6,10 @@ export type ActionResult<T> =
 // All prices stored as integer cents — 1500 = $15.00
 // Use utils/formatPrice.ts for display formatting
 export type PriceCents = number
+
+export interface Category {
+  id: string
+  restaurant_id: string
+  name: string
+  display_order: number
+}
