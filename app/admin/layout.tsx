@@ -8,7 +8,7 @@ export default async function AdminLayout({
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/sign-up')
+  if (!user) redirect('/auth/login')
 
   const { data: profile } = await supabase
     .from('profiles')

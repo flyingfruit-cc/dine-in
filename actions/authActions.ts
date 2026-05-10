@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isValidSlugFormat } from '@/utils/validateSlug'
+import { redirect } from 'next/navigation'
 import type { ActionResult } from '@/types/app'
 
 export async function createRestaurant(input: {
@@ -74,4 +75,13 @@ export async function createRestaurant(input: {
   }
 
   return { success: true, data: { restaurantId: restaurant.id } }
+}
+
+export async function signOut(): Promise<void> {
+  const supabase = await createClient()
+  const { error } = await supabase.auth.signOut()
+  if (error) {
+    console.error('signOut error:', error.message)
+  }
+  redirect('/auth/login')
 }

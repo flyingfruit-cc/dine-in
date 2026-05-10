@@ -16,21 +16,22 @@ export function ForgotPasswordForm({
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    const supabase = createClient();
     setIsLoading(true);
     setError(null);
 
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/update-password`,
-      });
-      if (error) throw error;
-      setSuccess(true);
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
-    } finally {
-      setIsLoading(false);
+    const supabase = createClient();
+    // Route through /auth/confirm so the PKCE code exchange happens before
+    // the user lands on the update-password page with an active session
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/confirm?next=/auth/update-password`,
+    });
+
+    setIsLoading(false);
+    if (error) {
+      setError(error.message);
+      return;
     }
+    setSuccess(true);
   };
 
   return (
@@ -38,48 +39,64 @@ export function ForgotPasswordForm({
       {success ? (
         <div className="rounded-lg border border-border bg-surface-raised p-6">
           <div className="mb-4">
-            <h1 className="text-2xl font-semibold text-text-primary">Check Your Email</h1>
-            <p className="text-sm text-text-secondary">Password reset instructions sent</p>
+            <h1 className="text-2xl font-semibold text-text-primary">
+              Check your email
+            </h1>
+            <p className="text-sm text-text-secondary">
+              Password reset instructions sent
+            </p>
           </div>
           <p className="text-sm text-text-secondary">
-            If you registered using your email and password, you will receive a password reset email.
+            If an account with that email exists, you&apos;ll receive a password
+            reset link shortly.
           </p>
         </div>
       ) : (
         <div className="rounded-lg border border-border bg-surface-raised p-6">
           <div className="mb-4">
-            <h1 className="text-2xl font-semibold text-text-primary">Reset Your Password</h1>
+            <h1 className="text-2xl font-semibold text-text-primary">
+              Reset your password
+            </h1>
             <p className="text-sm text-text-secondary">
-              Type in your email and we&apos;ll send you a link to reset your password
+              Enter your email and we&apos;ll send you a reset link
             </p>
           </div>
           <form onSubmit={handleForgotPassword}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
-                <label htmlFor="email" className="text-sm font-medium">Email</label>
+                <label htmlFor="email" className="text-sm font-medium">
+                  Email
+                </label>
                 <input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="you@example.com"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="flex h-10 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
+              {error && (
+                <p role="alert" className="text-sm text-red-500">
+                  {error}
+                </p>
+              )}
               <button
                 type="submit"
                 disabled={isLoading}
-                className="inline-flex w-full items-center justify-center rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium transition-colors hover:bg-foreground/90 disabled:opacity-50"
+                className="inline-flex w-full items-center justify-center rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90 disabled:opacity-50"
               >
-                {isLoading ? "Sending..." : "Send reset email"}
+                {isLoading ? "Sending…" : "Send reset email"}
               </button>
             </div>
             <div className="mt-4 text-center text-sm">
-              Already have an account?{" "}
-              <Link href="/auth/login" className="underline underline-offset-4">
-                Login
+              Remember your password?{" "}
+              <Link
+                href="/auth/login"
+                className="underline underline-offset-4"
+              >
+                Log in
               </Link>
             </div>
           </form>
