@@ -34,3 +34,12 @@
 - D2: display_order concurrent race condition — COUNT/MAX-based display_order is not atomic; two concurrent creates can assign the same value. True atomicity requires a DB-level sequence or function. Deferred to Story 2.5 which owns full category reordering.
 - D3: No duplicate category name prevention at any layer — no uniqueness constraint in schema, no app-level check. Not an AC requirement for Story 2.1; revisit if UX spec calls for it.
 - D4: MenuPage page-level auth guard absent — intentional per story Dev Notes; `app/admin/layout.tsx` handles auth for the entire /admin tree. No action needed unless layout is changed.
+
+## Deferred from: code review of 2-2-menu-item-creation-edit-delete (2026-05-10)
+
+- `formatPrice` does not handle negative values — prices are never negative in domain; concern only if negative price_cents ever enters the DB. Revisit if discount/adjustment features are added.
+- `deleteMenuItem` returns `{ success: true }` for a no-op delete — RLS scoping means this can only happen if a stale item ID is submitted; add `count` check in a future hardening pass.
+- `localItems` not synced with refreshed `items` prop — client-only state initialised from server props; requires `router.refresh()` or `useEffect` on props to stay in sync. Deferred to future story with page revalidation.
+- `MenuItem` type missing `updated_at` field — field not in current schema; add to type and migration when last-modified display is needed.
+- `MenuItemUpdate` allows empty-object no-op — TypeScript-level nicety; not a functional bug. Add `RequireAtLeastOne<MenuItemUpdate>` utility type in a future hardening pass.
+- Edit page (`[item_id]/page.tsx`) relies solely on RLS for restaurant scoping — spec-acknowledged pattern (story Dev Notes explicitly note this). Add explicit `.eq('restaurant_id', restaurantId)` as defence-in-depth in a future story.

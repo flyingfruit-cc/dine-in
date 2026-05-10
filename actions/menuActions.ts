@@ -1,7 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import type { ActionResult, Category } from '@/types/app'
+import { createAdminClient } from '@/lib/supabase/admin'
+import type { ActionResult, Category, MenuItem, MenuItemCreate, MenuItemUpdate } from '@/types/app'
 
 async function getAuthContext() {
   const supabase = await createClient()
@@ -95,4 +96,103 @@ export async function deleteCategory(
 
   if (error) return { success: false, error: error.message }
   return { success: true, data: undefined }
+}
+
+export async function createMenuItem(
+  data: MenuItemCreate
+): Promise<ActionResult<{ item: MenuItem }>> {
+  const { supabase, user, restaurantId } = await getAuthContext()
+  if (!user) return { success: false, error: 'Not authenticated' }
+  if (!restaurantId) return { success: false, error: 'No restaurant found' }
+
+  const { data: row, error } = await supabase
+    .from('menu_items')
+    .insert({ ...data, restaurant_id: restaurantId })
+    .select()
+    .single()
+
+  if (error || !row) return { success: false, error: error?.message ?? 'Failed to create item' }
+  return { success: true, data: { item: row as MenuItem } }
+}
+
+export async function updateMenuItem(
+  itemId: string,
+  data: MenuItemUpdate
+): Promise<ActionResult<{ item: MenuItem }>> {
+  const { supabase, user, restaurantId } = await getAuthContext()
+  if (!user) return { success: false, error: 'Not authenticated' }
+  if (!restaurantId) return { success: false, error: 'No restaurant found' }
+
+  const { data: row, error } = await supabase
+    .from('menu_items')
+    .update(data)
+    .eq('id', itemId)
+    .eq('restaurant_id', restaurantId)
+    .select()
+    .single()
+
+  if (error || !row) return { success: false, error: error?.message ?? 'Failed to update item' }
+  return { success: true, data: { item: row as MenuItem } }
+}
+
+export async function deleteMenuItem(
+  itemId: string
+): Promise<ActionResult<void>> {
+  const { supabase, user, restaurantId } = await getAuthContext()
+  if (!user) return { success: false, error: 'Not authenticated' }
+  if (!restaurantId) return { success: false, error: 'No restaurant found' }
+
+  const { error } = await supabase
+    .from('menu_items')
+    .delete()
+    .eq('id', itemId)
+    .eq('restaurant_id', restaurantId)
+
+  if (error) return { success: false, error: error.message }
+  return { success: true, data: undefined }
+}
+
+export async function uploadMenuItemImage(
+  itemId: string,
+  formData: FormData
+): Promise<ActionResult<{ imageUrl: string }>> {
+  const { supabase, user, restaurantId } = await getAuthContext()
+  if (!user) return { success: false, error: 'Not authenticated' }
+  if (!restaurantId) return { success: false, error: 'No restaurant found' }
+
+  const file = formData.get('file') as File | null
+  if (!file) return { success: false, error: 'No file provided' }
+
+  if (!file.type.startsWith('image/')) return { success: false, error: 'File must be an image' }
+
+  const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+  if (file.size > MAX_IMAGE_BYTES) return { success: false, error: 'File must be under 5 MB' }
+
+  const buffer = await file.arrayBuffer()
+  const storagePath = `${restaurantId}/${itemId}/image`
+
+  const adminClient = createAdminClient()
+  const { error: uploadError } = await adminClient.storage
+    .from('menu-images')
+    .upload(storagePath, buffer, { contentType: file.type, upsert: true })
+
+  if (uploadError) return { success: false, error: uploadError.message }
+
+  const { data: { publicUrl } } = adminClient.storage
+    .from('menu-images')
+    .getPublicUrl(storagePath)
+
+  // Append a cache-buster so the browser fetches the new image after a replacement.
+  // The storage path is fixed per item, so the CDN URL never changes on its own.
+  const imageUrl = `${publicUrl}?v=${Date.now()}`
+
+  const { error: updateError } = await supabase
+    .from('menu_items')
+    .update({ image_url: imageUrl })
+    .eq('id', itemId)
+    .eq('restaurant_id', restaurantId)
+
+  if (updateError) return { success: false, error: updateError.message }
+
+  return { success: true, data: { imageUrl } }
 }

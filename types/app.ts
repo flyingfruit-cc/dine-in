@@ -13,3 +13,30 @@ export interface Category {
   name: string
   display_order: number
 }
+
+export interface MenuItem {
+  id: string
+  restaurant_id: string
+  category_id: string | null
+  name: string
+  description: string | null
+  price_cents: number
+  is_published: boolean
+  image_url: string | null
+  created_at: string
+}
+
+export interface MenuItemCreate {
+  name: string
+  description?: string | null
+  price_cents: number
+  category_id?: string | null
+}
+
+export interface MenuItemUpdate {
+  name?: string
+  description?: string | null
+  price_cents?: number
+  category_id?: string | null
+  image_url?: string | null
+}
