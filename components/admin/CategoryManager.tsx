@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createCategory, renameCategory, deleteCategory } from '@/actions/menuActions'
 import type { Category } from '@/types/app'
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function CategoryManager({ initialCategories }: Props) {
+  const router = useRouter()
   const [categories, setCategories] = useState<Category[]>(initialCategories)
   const [newName, setNewName] = useState('')
   const [createError, setCreateError] = useState<string | null>(null)
@@ -33,6 +35,7 @@ export function CategoryManager({ initialCategories }: Props) {
     }
     setCategories((prev) => [...prev, result.data.category])
     setNewName('')
+    router.refresh()
   }
 
   const startRename = (cat: Category) => {
@@ -80,6 +83,7 @@ export function CategoryManager({ initialCategories }: Props) {
       if (result.success) {
         setCategories((prev) => prev.filter((c) => c.id !== deleteTarget.id))
         setDeleteTarget(null)
+        router.refresh()
       } else {
         setDeleteError(result.error)
       }

@@ -31,6 +31,12 @@ Given no categories exist
 When the menu page renders
 Then an empty state is shown with a CTA: "Add your first category →"
 
+**AC5** — Menu item section reflects category changes without page reload:
+Given an owner creates a new category
+When the category is saved
+Then the Items section below immediately shows the new category with an "Add item →" link — no manual refresh required
+And given no categories exist yet, the Items section shows "Add a category above to start adding items" instead of rendering nothing
+
 ## Tasks / Subtasks
 
 - [x] Task 1: Add `Category` type to `types/app.ts` (AC: 1, 2, 3)
@@ -54,7 +60,13 @@ Then an empty state is shown with a CTA: "Add your first category →"
   - [x] Empty state: "Add your first category →" CTA that focuses the input
   - [x] Inline error below input on Server Action failure — no toasts
 
-- [x] Task 5: Write unit tests for Server Actions (AC: 1, 2, 3)
+- [x] Task 5: Sync category state to MenuItemList after mutations (AC: 5)
+  - [x] Import `useRouter` from `next/navigation` in `CategoryManager.tsx`
+  - [x] Call `router.refresh()` after successful `createCategory` and `deleteCategory` to re-fetch SSR props and update `MenuItemList`
+  - [x] Add empty state to `MenuItemList` when `categories.length === 0`: "Add a category above to start adding items"
+  - [x] Mock `next/navigation` in `CategoryManager.test.tsx` so `useRouter` works in jsdom
+
+- [x] Task 6: Write unit tests for Server Actions (AC: 1, 2, 3)
   - [x] `createCategory` — persists with correct `restaurant_id`, returns category
   - [x] `renameCategory` — updates name, scoped to owner restaurant
   - [x] `deleteCategory` — deletes items first, then category; verifies both calls
@@ -256,3 +268,4 @@ claude-sonnet-4-6
 
 - 2026-05-10: Story 2.1 implemented — Category Management (create, rename, delete with destructive dialog, empty state). 34 tests passing.
 - 2026-05-10: Code review patches applied — 8 findings resolved: display_order COUNT→MAX+1, rename error state, delete error state, isDeleting guard, try/catch on async handlers, useRef removed, Category[] cast removed, redundant role="form" removed. 37 tests passing.
+- 2026-05-11: UX fix (AC5) — `router.refresh()` after create/delete syncs MenuItemList to new categories without page reload; empty state added to MenuItemList when no categories exist. 83 tests passing.

@@ -110,6 +110,14 @@ export function MenuItemList({ categories, items }: Props) {
     }
   }
 
+  if (categories.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-border px-6 py-10 text-center">
+        <p className="text-sm text-text-secondary">Add a category above to start adding items</p>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-8">
       {categories.map((cat) => (
