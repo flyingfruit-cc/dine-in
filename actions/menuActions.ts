@@ -2,7 +2,11 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { ActionResult, Category, MenuItem, MenuItemCreate, MenuItemUpdate } from '@/types/app'
+import type { ActionResult, Category, MenuItem, MenuItemCreate, MenuItemUpdate, VariantGroup } from '@/types/app'
+
+function toMenuItem(row: Record<string, unknown>): MenuItem {
+  return { ...row, variants: (row.variants ?? []) as VariantGroup[] } as MenuItem
+}
 
 async function getAuthContext() {
   const supabase = await createClient()
@@ -112,7 +116,7 @@ export async function createMenuItem(
     .single()
 
   if (error || !row) return { success: false, error: error?.message ?? 'Failed to create item' }
-  return { success: true, data: { item: row as MenuItem } }
+  return { success: true, data: { item: toMenuItem(row) } }
 }
 
 export async function updateMenuItem(
@@ -132,7 +136,7 @@ export async function updateMenuItem(
     .single()
 
   if (error || !row) return { success: false, error: error?.message ?? 'Failed to update item' }
-  return { success: true, data: { item: row as MenuItem } }
+  return { success: true, data: { item: toMenuItem(row) } }
 }
 
 export async function deleteMenuItem(

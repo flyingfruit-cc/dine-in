@@ -43,3 +43,11 @@
 - `MenuItem` type missing `updated_at` field — field not in current schema; add to type and migration when last-modified display is needed.
 - `MenuItemUpdate` allows empty-object no-op — TypeScript-level nicety; not a functional bug. Add `RequireAtLeastOne<MenuItemUpdate>` utility type in a future hardening pass.
 - Edit page (`[item_id]/page.tsx`) relies solely on RLS for restaurant scoping — spec-acknowledged pattern (story Dev Notes explicitly note this). Add explicit `.eq('restaurant_id', restaurantId)` as defence-in-depth in a future story.
+
+## Deferred from: code review of 2-3-item-variants-pricing (2026-05-12)
+
+- `toMenuItem` bare `as VariantGroup[]` cast — no shape validation against malformed JSONB in `actions/menuActions.ts`; DB `NOT NULL DEFAULT '[]'` is the real guard. Add runtime shape validation in a future hardening pass.
+- No server-side non-negative validation on `price_cents` for variant options — pre-existing pattern; client `min="0"` is the only guard. Add server-side bounds check when backend validation layer is introduced.
+- No upper bound on number of variant groups in `VariantEditor` — intentional per spec (only options capped at 6); revisit as product decision if unbounded JSONB growth becomes a concern.
+- Floating-point rounding imprecision in `updateOptionPrice` via `Math.round(parseFloat(v) * 100)` — shared pattern with main item price field; affects edge decimal values (e.g. $2.555 → 255¢ instead of 256¢). Fix with `Math.round(parseFloat((+v).toFixed(2)) * 100)` in a future hardening pass.
+- Variant-only edits on new items silently discarded before name is typed — `!name.trim()` guard in `MenuItemForm.tsx` predates variants; no user warning given. Revisit UX when name-less draft saving is considered.

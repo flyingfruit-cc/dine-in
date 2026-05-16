@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act, cleanup } from '@testing-library/react'
+import type { VariantGroup } from '@/types/app'
 
 const mockPush = vi.fn()
 
@@ -10,6 +11,17 @@ vi.mock('@/actions/menuActions', () => ({
 }))
 
 vi.mock('next/navigation', () => ({ useRouter: vi.fn(() => ({ push: mockPush })) }))
+
+vi.mock('@/components/admin/VariantEditor', () => ({
+  VariantEditor: ({ onChange }: { onChange: (v: VariantGroup[]) => void }) => (
+    <button
+      type="button"
+      onClick={() => onChange([{ id: 'v1', name: 'Size', options: [{ id: 'o1', name: 'Small', price_cents: 800 }] }])}
+    >
+      mock-variant-change
+    </button>
+  ),
+}))
 
 import { MenuItemForm } from '@/components/admin/MenuItemForm'
 import { createMenuItem, updateMenuItem, uploadMenuItemImage } from '@/actions/menuActions'
@@ -35,6 +47,7 @@ const sampleItem = {
   price_cents: 800,
   is_published: false,
   image_url: null,
+  variants: [],
   created_at: '2026-05-10',
 }
 
@@ -204,6 +217,49 @@ describe('MenuItemForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /remove image/i }))
     expect(screen.queryByRole('img')).toBeNull()
     expect(screen.queryByRole('button', { name: /remove image/i })).toBeNull()
+  })
+
+  it('renders VariantEditor section', () => {
+    render(<MenuItemForm categories={sampleCategories} />)
+    expect(screen.getByRole('button', { name: /mock-variant-change/i })).toBeDefined()
+  })
+
+  it('includes variants in save payload when variants change', async () => {
+    vi.useFakeTimers()
+    const newItem = { ...sampleItem, id: 'new-item-1', name: 'Pizza' }
+    mockCreate.mockResolvedValue({ success: true, data: { item: newItem } })
+
+    render(<MenuItemForm categories={sampleCategories} />)
+    fireEvent.change(screen.getByPlaceholderText(/item name/i), { target: { value: 'Pizza' } })
+    fireEvent.click(screen.getByRole('button', { name: /mock-variant-change/i }))
+
+    await act(async () => { await vi.runAllTimersAsync() })
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Pizza',
+        variants: [{ id: 'v1', name: 'Size', options: [{ id: 'o1', name: 'Small', price_cents: 800 }] }],
+      })
+    )
+
+    vi.useRealTimers()
+  })
+
+  it('includes variants in updateMenuItem payload in edit mode', async () => {
+    vi.useFakeTimers()
+    const updated = { ...sampleItem, name: 'Updated Soup' }
+    mockUpdate.mockResolvedValue({ success: true, data: { item: updated } })
+
+    render(<MenuItemForm categories={sampleCategories} item={sampleItem} />)
+    fireEvent.click(screen.getByRole('button', { name: /mock-variant-change/i }))
+
+    await act(async () => { await vi.runAllTimersAsync() })
+
+    expect(mockUpdate).toHaveBeenCalledWith('item-1', expect.objectContaining({
+      variants: [{ id: 'v1', name: 'Size', options: [{ id: 'o1', name: 'Small', price_cents: 800 }] }],
+    }))
+
+    vi.useRealTimers()
   })
 
   it('passes image_url null to updateMenuItem after image removal', async () => {

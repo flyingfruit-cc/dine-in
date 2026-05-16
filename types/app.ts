@@ -14,6 +14,18 @@ export interface Category {
   display_order: number
 }
 
+export interface VariantOption {
+  id: string
+  name: string
+  price_cents: number
+}
+
+export interface VariantGroup {
+  id: string
+  name: string
+  options: VariantOption[]
+}
+
 export interface MenuItem {
   id: string
   restaurant_id: string
@@ -23,6 +35,7 @@ export interface MenuItem {
   price_cents: number
   is_published: boolean
   image_url: string | null
+  variants: VariantGroup[]
   created_at: string
 }
 
@@ -31,6 +44,7 @@ export interface MenuItemCreate {
   description?: string | null
   price_cents: number
   category_id?: string | null
+  variants?: VariantGroup[]
 }
 
 export interface MenuItemUpdate {
@@ -39,4 +53,5 @@ export interface MenuItemUpdate {
   price_cents?: number
   category_id?: string | null
   image_url?: string | null
+  variants?: VariantGroup[]
 }
