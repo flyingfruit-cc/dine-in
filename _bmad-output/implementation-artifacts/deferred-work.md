@@ -67,3 +67,16 @@
 - Stale `previousItems` snapshot during concurrent overlapping drags — rollback restores a snapshot that may miss interleaved optimistic mutations from a second drag. Extremely unlikely UX scenario on a menu admin page.
 - Migration `ROW_NUMBER` backfill is non-deterministic for items sharing an identical `created_at` timestamp — add `ORDER BY created_at ASC, id ASC` tiebreaker if bulk imports become a supported workflow.
 - `arrayMove` on a 1-item category still fires `reorderMenuItems` — harmless extra call; add `categoryItems.length <= 1` guard in a future cleanup pass.
+
+## Deferred from: code review of 2-6-menu-preview (2026-05-16)
+
+- Active tab not updated on scroll — AC4 only requires click-to-scroll; scroll-based tab tracking via IntersectionObserver is a future UX enhancement.
+- Code duplication between categorized and uncategorized item render blocks — extract shared `MenuItemRow` sub-component in Epic 4 refactor when customer components are built.
+- No error handling on Supabase queries in page component — matches established project pattern (same as `app/admin/menu/page.tsx`); add a shared error boundary in a future hardening pass.
+- Unpublished items shown without visual indicator — admin preview intentionally shows all items including unpublished; if a visual indicator is desired, add to Story 2.7 scope.
+- `now` stale over long session — acceptable for a preview page unlikely to stay mounted indefinitely; add periodic refresh if real-time availability indication becomes a requirement.
+- `select('*')` fetches all columns — project-wide pattern across all page.tsx files; switch to explicit column selection in a future performance hardening pass.
+- No page metadata (`generateMetadata`) on preview page — not in story scope; add with page title/description in a future polish pass.
+- No loading/suspense boundary on preview page — not in story scope; add `loading.tsx` sibling in a future polish pass.
+- `availability_schedule` time string format validation — pre-existing gap in `utils/isAvailable.ts`; add `HH:MM` format guard in that utility when data integrity hardening is prioritized.
+- `categories` prop change stale `activeTab` — not applicable in current SSC pattern (props are stable); revisit if the preview is ever made to live-reload.
