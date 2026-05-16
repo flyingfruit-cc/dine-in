@@ -10,7 +10,8 @@ import {
 } from "@/actions/menuActions";
 import { formatPrice } from "@/utils/formatPrice";
 import { VariantEditor } from "@/components/admin/VariantEditor";
-import type { Category, MenuItem, VariantGroup } from "@/types/app";
+import { AvailabilitySchedule } from "@/components/admin/AvailabilitySchedule";
+import type { Category, MenuItem, VariantGroup, AvailabilitySchedule as Schedule } from "@/types/app";
 
 interface Props {
   categories: Category[];
@@ -36,6 +37,9 @@ export function MenuItemForm({ categories, item }: Props) {
   const [variants, setVariants] = useState<VariantGroup[]>(
     item?.variants ?? [],
   );
+  const [availabilitySchedule, setAvailabilitySchedule] = useState<Schedule | null>(
+    item?.availability_schedule ?? null,
+  );
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -52,6 +56,7 @@ export function MenuItemForm({ categories, item }: Props) {
       price_cents: priceCents,
       category_id: categoryId,
       variants,
+      availability_schedule: availabilitySchedule,
     };
 
     try {
@@ -132,6 +137,7 @@ export function MenuItemForm({ categories, item }: Props) {
     pendingImageFile,
     imageRemoved,
     variants,
+    availabilitySchedule,
   ]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -242,6 +248,17 @@ export function MenuItemForm({ categories, item }: Props) {
           Variants
         </label>
         <VariantEditor variants={variants} onChange={setVariants} />
+      </div>
+
+      {/* Availability */}
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-text-primary">
+          Availability
+        </label>
+        <AvailabilitySchedule
+          schedule={availabilitySchedule}
+          onChange={setAvailabilitySchedule}
+        />
       </div>
 
       {/* Image */}

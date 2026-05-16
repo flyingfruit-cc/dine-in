@@ -51,3 +51,10 @@
 - No upper bound on number of variant groups in `VariantEditor` — intentional per spec (only options capped at 6); revisit as product decision if unbounded JSONB growth becomes a concern.
 - Floating-point rounding imprecision in `updateOptionPrice` via `Math.round(parseFloat(v) * 100)` — shared pattern with main item price field; affects edge decimal values (e.g. $2.555 → 255¢ instead of 256¢). Fix with `Math.round(parseFloat((+v).toFixed(2)) * 100)` in a future hardening pass.
 - Variant-only edits on new items silently discarded before name is typed — `!name.trim()` guard in `MenuItemForm.tsx` predates variants; no user warning given. Revisit UX when name-less draft saving is considered.
+
+## Deferred from: code review of 2-4-item-availability-scheduling (2026-05-16)
+
+- Timezone mismatch: `isItemAvailable` uses process/browser local timezone, not the restaurant's configured timezone. No timezone field in `AvailabilitySchedule`. Requires schema change + TZ selection UI; deferred to post-MVP hardening.
+- No UI warning when schedule is enabled but `days: []` — item is silently unavailable to customers with no owner feedback. UX polish; not an AC requirement.
+- No validation when `start_time >= end_time` — produces a permanently-unavailable window with no error or warning in the editor. Spec documents overnight schedules are unsupported; add time-order validation in a future UX hardening pass.
+- Bare `as AvailabilitySchedule | null` type cast in `app/admin/menu/[item_id]/page.tsx` — no runtime JSONB shape validation. Pre-existing pattern (same file also has bare `as VariantGroup[]` cast); add runtime shape validation in a future hardening pass.

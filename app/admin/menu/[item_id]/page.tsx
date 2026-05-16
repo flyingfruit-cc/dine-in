@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { MenuItemForm } from '@/components/admin/MenuItemForm'
-import type { MenuItem, VariantGroup } from '@/types/app'
+import type { MenuItem, VariantGroup, AvailabilitySchedule } from '@/types/app'
 
 export default async function EditMenuItemPage({
   params,
@@ -18,7 +18,11 @@ export default async function EditMenuItemPage({
 
   if (!item) notFound()
 
-  const normalizedItem: MenuItem = { ...item, variants: (item.variants ?? []) as VariantGroup[] } as MenuItem
+  const normalizedItem: MenuItem = {
+    ...item,
+    variants: (item.variants ?? []) as VariantGroup[],
+    availability_schedule: item.availability_schedule as AvailabilitySchedule | null,
+  } as MenuItem
 
   return (
     <main className="min-h-screen p-6 lg:p-10">

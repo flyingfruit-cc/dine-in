@@ -14,6 +14,14 @@ export interface Category {
   display_order: number
 }
 
+export type DayOfWeek = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun'
+
+export interface AvailabilitySchedule {
+  days: DayOfWeek[]
+  start_time: string  // "HH:MM" 24-hour
+  end_time: string    // "HH:MM" 24-hour; half-open [start, end) — overnight not supported
+}
+
 export interface VariantOption {
   id: string
   name: string
@@ -36,6 +44,7 @@ export interface MenuItem {
   is_published: boolean
   image_url: string | null
   variants: VariantGroup[]
+  availability_schedule: AvailabilitySchedule | null
   created_at: string
 }
 
@@ -45,6 +54,7 @@ export interface MenuItemCreate {
   price_cents: number
   category_id?: string | null
   variants?: VariantGroup[]
+  availability_schedule?: AvailabilitySchedule | null
 }
 
 export interface MenuItemUpdate {
@@ -54,4 +64,5 @@ export interface MenuItemUpdate {
   category_id?: string | null
   image_url?: string | null
   variants?: VariantGroup[]
+  availability_schedule?: AvailabilitySchedule | null
 }

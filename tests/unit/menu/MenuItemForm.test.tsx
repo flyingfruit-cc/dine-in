@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act, cleanup } from '@testing-library/react'
-import type { VariantGroup } from '@/types/app'
+import type { VariantGroup, AvailabilitySchedule } from '@/types/app'
 
 const mockPush = vi.fn()
 
@@ -19,6 +19,17 @@ vi.mock('@/components/admin/VariantEditor', () => ({
       onClick={() => onChange([{ id: 'v1', name: 'Size', options: [{ id: 'o1', name: 'Small', price_cents: 800 }] }])}
     >
       mock-variant-change
+    </button>
+  ),
+}))
+
+vi.mock('@/components/admin/AvailabilitySchedule', () => ({
+  AvailabilitySchedule: ({ onChange }: { onChange: (s: AvailabilitySchedule) => void }) => (
+    <button
+      type="button"
+      onClick={() => onChange({ days: ['mon', 'fri'], start_time: '11:00', end_time: '14:00' })}
+    >
+      mock-availability-change
     </button>
   ),
 }))
@@ -48,6 +59,7 @@ const sampleItem = {
   is_published: false,
   image_url: null,
   variants: [],
+  availability_schedule: null,
   created_at: '2026-05-10',
 }
 
@@ -257,6 +269,49 @@ describe('MenuItemForm', () => {
 
     expect(mockUpdate).toHaveBeenCalledWith('item-1', expect.objectContaining({
       variants: [{ id: 'v1', name: 'Size', options: [{ id: 'o1', name: 'Small', price_cents: 800 }] }],
+    }))
+
+    vi.useRealTimers()
+  })
+
+  it('renders AvailabilitySchedule section', () => {
+    render(<MenuItemForm categories={sampleCategories} />)
+    expect(screen.getByRole('button', { name: /mock-availability-change/i })).toBeDefined()
+  })
+
+  it('includes availability_schedule in save payload when schedule changes', async () => {
+    vi.useFakeTimers()
+    const newItem = { ...sampleItem, id: 'new-item-1', name: 'Pizza' }
+    mockCreate.mockResolvedValue({ success: true, data: { item: newItem } })
+
+    render(<MenuItemForm categories={sampleCategories} />)
+    fireEvent.change(screen.getByPlaceholderText(/item name/i), { target: { value: 'Pizza' } })
+    fireEvent.click(screen.getByRole('button', { name: /mock-availability-change/i }))
+
+    await act(async () => { await vi.runAllTimersAsync() })
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Pizza',
+        availability_schedule: { days: ['mon', 'fri'], start_time: '11:00', end_time: '14:00' },
+      })
+    )
+
+    vi.useRealTimers()
+  })
+
+  it('includes availability_schedule in updateMenuItem payload in edit mode', async () => {
+    vi.useFakeTimers()
+    const updated = { ...sampleItem, name: 'Updated Soup' }
+    mockUpdate.mockResolvedValue({ success: true, data: { item: updated } })
+
+    render(<MenuItemForm categories={sampleCategories} item={sampleItem} />)
+    fireEvent.click(screen.getByRole('button', { name: /mock-availability-change/i }))
+
+    await act(async () => { await vi.runAllTimersAsync() })
+
+    expect(mockUpdate).toHaveBeenCalledWith('item-1', expect.objectContaining({
+      availability_schedule: { days: ['mon', 'fri'], start_time: '11:00', end_time: '14:00' },
     }))
 
     vi.useRealTimers()
