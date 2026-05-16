@@ -43,6 +43,7 @@ export interface MenuItem {
   price_cents: number
   is_published: boolean
   image_url: string | null
+  display_order: number
   variants: VariantGroup[]
   availability_schedule: AvailabilitySchedule | null
   created_at: string
@@ -63,6 +64,7 @@ export interface MenuItemUpdate {
   price_cents?: number
   category_id?: string | null
   image_url?: string | null
+  display_order?: number
   variants?: VariantGroup[]
   availability_schedule?: AvailabilitySchedule | null
 }

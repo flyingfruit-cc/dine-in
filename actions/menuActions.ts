@@ -109,9 +109,17 @@ export async function createMenuItem(
   if (!user) return { success: false, error: 'Not authenticated' }
   if (!restaurantId) return { success: false, error: 'No restaurant found' }
 
+  const query = data.category_id
+    ? supabase.from('menu_items').select('display_order').eq('restaurant_id', restaurantId).eq('category_id', data.category_id).order('display_order', { ascending: false }).limit(1).maybeSingle()
+    : supabase.from('menu_items').select('display_order').eq('restaurant_id', restaurantId).is('category_id', null).order('display_order', { ascending: false }).limit(1).maybeSingle()
+
+  const { data: maxRow, error: maxError } = await query
+  if (maxError) return { success: false, error: maxError.message }
+  const nextOrder = (maxRow?.display_order ?? -1) + 1
+
   const { data: row, error } = await supabase
     .from('menu_items')
-    .insert({ ...data, restaurant_id: restaurantId })
+    .insert({ ...data, restaurant_id: restaurantId, display_order: nextOrder })
     .select()
     .single()
 
@@ -199,4 +207,26 @@ export async function uploadMenuItemImage(
   if (updateError) return { success: false, error: updateError.message }
 
   return { success: true, data: { imageUrl } }
+}
+
+export async function reorderMenuItems(
+  updates: { id: string; display_order: number }[]
+): Promise<ActionResult<void>> {
+  const { supabase, user, restaurantId } = await getAuthContext()
+  if (!user) return { success: false, error: 'Not authenticated' }
+  if (!restaurantId) return { success: false, error: 'No restaurant found' }
+
+  const results = await Promise.all(
+    updates.map(({ id, display_order }) =>
+      supabase
+        .from('menu_items')
+        .update({ display_order })
+        .eq('id', id)
+        .eq('restaurant_id', restaurantId)
+    )
+  )
+
+  const firstError = results.find((r) => r.error)?.error
+  if (firstError) return { success: false, error: firstError.message }
+  return { success: true, data: undefined }
 }

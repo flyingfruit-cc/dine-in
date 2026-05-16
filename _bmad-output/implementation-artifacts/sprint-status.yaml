@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-09
-last_updated: 2026-05-16  # updated by code review
+last_updated: 2026-05-16
 project: dine-in-cc
 project_key: NOKEY
 tracking_system: file-system
@@ -56,7 +56,7 @@ development_status:
   2-2-menu-item-creation-edit-delete: done
   2-3-item-variants-pricing: done
   2-4-item-availability-scheduling: done
-  2-5-item-reordering-within-category: backlog
+  2-5-item-reordering-within-category: done
   2-6-menu-preview: backlog
   2-7-menu-publish-offline-control-onboarding-checklist: backlog
   epic-2-retrospective: optional

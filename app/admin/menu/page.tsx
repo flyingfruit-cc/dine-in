@@ -7,7 +7,7 @@ export default async function MenuPage() {
 
   const [{ data: categories }, { data: items }] = await Promise.all([
     supabase.from('categories').select('*').order('display_order', { ascending: true }),
-    supabase.from('menu_items').select('*').order('created_at', { ascending: true }),
+    supabase.from('menu_items').select('*').order('display_order', { ascending: true }),
   ])
 
   return (

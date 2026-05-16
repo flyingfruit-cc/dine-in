@@ -20,6 +20,7 @@ function makeChain(overrides: Record<string, unknown> = {}) {
     update: vi.fn().mockReturnThis(),
     delete: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
+    is: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue({ data: null, error: null }),
     maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
     order: vi.fn().mockReturnThis(),
@@ -78,6 +79,20 @@ describe('createMenuItem', () => {
       expect(result.data.item.name).toBe('Burger')
       expect(result.data.item.restaurant_id).toBe(RESTAURANT_ID)
     }
+  })
+
+  it('returns error when display_order MAX query fails', async () => {
+    const maxErrChain = makeChain({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: { message: 'query error' } }) })
+    vi.mocked(createClient).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: USER_ID } } }) },
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'profiles') return makeChain({ single: vi.fn().mockResolvedValue({ data: { restaurant_id: RESTAURANT_ID }, error: null }) })
+        return maxErrChain
+      }),
+    } as any)
+    const result = await createMenuItem({ name: 'Burger', price_cents: 1200 })
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error).toBe('query error')
   })
 
   it('returns error when insert fails', async () => {

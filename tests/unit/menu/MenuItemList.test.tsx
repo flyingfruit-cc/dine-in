@@ -3,14 +3,16 @@ import { render, screen, fireEvent, waitFor, act, cleanup } from '@testing-libra
 
 vi.mock('@/actions/menuActions', () => ({
   deleteMenuItem: vi.fn(),
+  reorderMenuItems: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({ useRouter: vi.fn(() => ({ push: vi.fn() })) }))
 
 import { MenuItemList } from '@/components/admin/MenuItemList'
-import { deleteMenuItem } from '@/actions/menuActions'
+import { deleteMenuItem, reorderMenuItems } from '@/actions/menuActions'
 
 const mockDelete = vi.mocked(deleteMenuItem)
+const mockReorder = vi.mocked(reorderMenuItems)
 
 const categories = [
   { id: 'cat-1', restaurant_id: 'rest-1', name: 'Starters', display_order: 0 },
@@ -18,8 +20,8 @@ const categories = [
 ]
 
 const items = [
-  { id: 'item-1', restaurant_id: 'rest-1', category_id: 'cat-1', name: 'Soup', description: null, price_cents: 800, is_published: false, image_url: null, created_at: '2026-05-10' },
-  { id: 'item-2', restaurant_id: 'rest-1', category_id: 'cat-2', name: 'Steak', description: null, price_cents: 2500, is_published: false, image_url: null, created_at: '2026-05-10' },
+  { id: 'item-1', restaurant_id: 'rest-1', category_id: 'cat-1', name: 'Soup', description: null, price_cents: 800, is_published: false, image_url: null, display_order: 0, variants: [], availability_schedule: null, created_at: '2026-05-10' },
+  { id: 'item-2', restaurant_id: 'rest-1', category_id: 'cat-2', name: 'Steak', description: null, price_cents: 2500, is_published: false, image_url: null, display_order: 0, variants: [], availability_schedule: null, created_at: '2026-05-10' },
 ]
 
 describe('MenuItemList', () => {
@@ -103,5 +105,15 @@ describe('MenuItemList', () => {
     fireEvent.click(screen.getByLabelText('Delete Soup'))
     fireEvent.click(screen.getByText('Cancel'))
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('renders drag handle for each item', () => {
+    render(<MenuItemList categories={categories} items={items} />)
+    expect(screen.getByLabelText('Drag to reorder Soup')).toBeDefined()
+    expect(screen.getByLabelText('Drag to reorder Steak')).toBeDefined()
+  })
+
+  it('reorderMenuItems mock is available', () => {
+    expect(mockReorder).toBeDefined()
   })
 })

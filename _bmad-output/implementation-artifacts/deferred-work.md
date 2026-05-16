@@ -58,3 +58,12 @@
 - No UI warning when schedule is enabled but `days: []` — item is silently unavailable to customers with no owner feedback. UX polish; not an AC requirement.
 - No validation when `start_time >= end_time` — produces a permanently-unavailable window with no error or warning in the editor. Spec documents overnight schedules are unsupported; add time-order validation in a future UX hardening pass.
 - Bare `as AvailabilitySchedule | null` type cast in `app/admin/menu/[item_id]/page.tsx` — no runtime JSONB shape validation. Pre-existing pattern (same file also has bare `as VariantGroup[]` cast); add runtime shape validation in a future hardening pass.
+
+## Deferred from: code review of 2-5-item-reordering-within-category (2026-05-16)
+
+- TOCTOU race on `display_order` in `createMenuItem` — two concurrent creates for the same category can read the same MAX and insert duplicate order values. True fix requires a DB-level sequence or `SELECT FOR UPDATE`. Post-MVP per story dev notes.
+- Non-atomic `reorderMenuItems` batch — `Promise.all` partial failure leaves DB with a mix of old and new `display_order` values. Full atomicity via Supabase `rpc()` transaction is post-MVP per story dev notes.
+- No max-length guard on `updates` array — an authenticated owner can send a very large payload causing `Promise.all` fan-out against the DB connection pool. Revisit when server-action input validation layer is added.
+- Stale `previousItems` snapshot during concurrent overlapping drags — rollback restores a snapshot that may miss interleaved optimistic mutations from a second drag. Extremely unlikely UX scenario on a menu admin page.
+- Migration `ROW_NUMBER` backfill is non-deterministic for items sharing an identical `created_at` timestamp — add `ORDER BY created_at ASC, id ASC` tiebreaker if bulk imports become a supported workflow.
+- `arrayMove` on a 1-item category still fires `reorderMenuItems` — harmless extra call; add `categoryItems.length <= 1` guard in a future cleanup pass.
