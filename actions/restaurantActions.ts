@@ -45,6 +45,23 @@ export async function takeMenuOffline(): Promise<ActionResult<void>> {
   return { success: true, data: undefined }
 }
 
+export async function updateRestaurantName(name: string): Promise<ActionResult<void>> {
+  const trimmed = name.trim()
+  if (!trimmed) return { success: false, error: 'Restaurant name cannot be empty' }
+
+  const { supabase, user, restaurantId } = await getAuthContext()
+  if (!user) return { success: false, error: 'Not authenticated' }
+  if (!restaurantId) return { success: false, error: 'No restaurant found' }
+
+  const { error } = await supabase
+    .from('restaurants')
+    .update({ name: trimmed })
+    .eq('id', restaurantId)
+
+  if (error) return { success: false, error: error.message }
+  return { success: true, data: undefined }
+}
+
 export async function recordMenuPreview(): Promise<ActionResult<void>> {
   const { supabase, user, restaurantId } = await getAuthContext()
   if (!user) return { success: false, error: 'Not authenticated' }

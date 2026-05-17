@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { CategoryManager } from '@/components/admin/CategoryManager'
 import { MenuItemList } from '@/components/admin/MenuItemList'
@@ -15,7 +16,12 @@ export default async function MenuPage() {
   return (
     <main className="min-h-screen p-6 lg:p-10">
       <div className="mx-auto max-w-2xl">
-        <h1 className="mb-6 text-2xl font-semibold text-text-primary">Menu</h1>
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-text-primary">Menu</h1>
+          <Link href="/admin/menu/preview" className="text-sm text-accent hover:underline">
+            Preview menu →
+          </Link>
+        </div>
         <section className="mb-10">
           <MenuPublishToggle isPublished={restaurant?.is_published ?? false} />
         </section>

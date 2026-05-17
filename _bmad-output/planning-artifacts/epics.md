@@ -338,6 +338,35 @@ So that I have secure, persistent access to my management panel from any device.
 
 ---
 
+### Story 1.5: Restaurant Settings — View & Edit Profile
+
+As a restaurant owner,
+I want to view my restaurant name and URL slug in the Admin Settings page and update my restaurant name if needed,
+So that I can correct onboarding mistakes and always know my customer-facing URL.
+
+**Acceptance Criteria:**
+
+**Given** an authenticated owner navigates to `/admin/settings`
+**When** the page renders
+**Then** the current restaurant name is shown in an editable text field
+**And** the URL slug is shown as read-only, prefixed as `dine-in/{slug}`
+**And** a note explains that the slug cannot be changed after setup
+
+**Given** an owner edits their restaurant name and clicks "Save"
+**When** `updateRestaurantName()` completes
+**Then** `restaurants.name` is updated for their restaurant
+**And** an inline success message is shown
+
+**Given** an owner submits an empty restaurant name
+**When** the form validates
+**Then** an inline error is shown and no DB update is made
+
+**Given** an authenticated owner is on any admin page
+**When** the Admin navigation renders
+**Then** a "Settings" tab is present and navigates to `/admin/settings` with active-state highlighting
+
+---
+
 ## Epic 2: Menu Building & Publishing
 
 Restaurant owners can build their complete menu — categories, items with variants, images, and availability schedules — preview it exactly as customers will see it, publish it live, and take it offline.
@@ -498,6 +527,11 @@ So that I can verify content and layout before publishing.
 **When** they view the preview
 **Then** no Admin UI controls (edit, delete, reorder) are visible — read-only customer view only
 
+**Given** an owner is on the menu builder page (`/admin/menu`)
+**When** the page renders
+**Then** a "Preview menu →" link is visible in the page header at all times
+**And** clicking it navigates to `/admin/menu/preview`
+
 ---
 
 ### Story 2.7: Menu Publish, Offline Control & Onboarding Checklist
@@ -525,6 +559,12 @@ So that I control when my menu is live and am guided through the final setup ste
 **Then** "Add menu items" is marked complete when at least one item exists
 **And** "Preview" is marked complete after the owner visits the preview
 **And** "Publish" is marked complete when `is_published` is `true`
+
+**Given** an owner is on any admin page (`/admin`, `/admin/menu`, `/admin/tables`)
+**When** the page renders
+**Then** a persistent navigation element is visible — bottom tab bar on mobile, left sidebar on desktop
+**And** tabs for Dashboard, Menu, and Tables are present with active-state highlighting on the current section
+**And** clicking Dashboard navigates to `/admin`, Menu to `/admin/menu`, Tables to `/admin/tables`
 
 ---
 

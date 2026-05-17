@@ -332,6 +332,11 @@ Domain regulatory burden is low. No HIPAA, PCI-DSS (payments are post-MVP), or i
 - **FR41:** Platform admin can inspect the account and configuration details of any tenant
 - **FR42:** Platform admin can access any tenant's data for support purposes
 
+### Restaurant Settings
+
+- **FR43:** Restaurant owner can view their restaurant name and URL slug from the Admin Settings page
+- **FR44:** Restaurant owner can update their restaurant name from the Admin Settings page (slug is immutable after creation to preserve QR code URLs)
+
 ## Non-Functional Requirements
 
 ### Performance
