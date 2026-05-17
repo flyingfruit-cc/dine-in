@@ -80,3 +80,14 @@
 - No loading/suspense boundary on preview page — not in story scope; add `loading.tsx` sibling in a future polish pass.
 - `availability_schedule` time string format validation — pre-existing gap in `utils/isAvailable.ts`; add `HH:MM` format guard in that utility when data integrity hardening is prioritized.
 - `categories` prop change stale `activeTab` — not applicable in current SSC pattern (props are stable); revisit if the preview is ever made to live-reload.
+
+## Deferred from: code review of 2-7-menu-publish-offline-control-onboarding-checklist (2026-05-16)
+
+- Dialog (take-offline confirmation) has no focus trap and does not restore focus to trigger button on close — implement FocusLock or native `inert` when an accessibility hardening pass is prioritized.
+- `getAuthContext` discards profile query error — transient DB failure is indistinguishable from a missing profile; pre-existing pattern from `menuActions.ts`, fix in a shared auth utility refactor.
+- `publishMenu`/`takeMenuOffline`/`recordMenuPreview` return success when 0 rows updated — Supabase UPDATE under RLS produces no error on zero-row result; add row-count assertion (or `select()` after update) in a defensive hardening pass.
+- `isPublished` prop briefly stale between `setIsSubmitting(false)` and RSC re-render from `router.refresh()` — inherent App Router pattern; consider adding a local optimistic `isPending` state if perceived latency becomes an issue.
+- Supabase generated types not regenerated after `has_previewed_menu` migration — `types/supabase.ts` diverges from actual schema; run `supabase gen types` and commit as part of the next migration or schema-change routine.
+- `OnboardingChecklist` can never reach `allComplete=true` while `hasTables`/`hasPrintedQr` are hardcoded `false` — by design (Epic 3 scope); wire real values in story 3-1.
+- Double `getAuthContext` auth round trips per action call — each action re-fetches user + restaurant_id; pre-existing pattern from `menuActions.ts`; consolidate with a shared session utility in a future refactor.
+- "Take offline" button has no `aria-label` associating it with the menu — low-impact; add `aria-label="Take menu offline"` in an accessibility pass.

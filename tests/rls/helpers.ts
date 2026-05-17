@@ -52,7 +52,7 @@ export async function createTestOwner(
 
   const { error: profileError } = await serviceClient
     .from('profiles')
-    .insert({ id: user.id, restaurant_id: restaurantId, is_platform_admin: false })
+    .upsert({ id: user.id, restaurant_id: restaurantId, is_platform_admin: false })
   if (profileError) throw new Error(`createTestOwner profile failed: ${profileError.message}`)
 
   return user

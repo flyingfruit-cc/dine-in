@@ -1,6 +1,14 @@
+import { createClient } from '@/lib/supabase/server'
 import { OnboardingChecklist } from '@/components/admin/OnboardingChecklist'
 
-export default function AdminPage() {
+export default async function AdminPage() {
+  const supabase = await createClient()
+
+  const [{ data: restaurant }, { data: menuItemsCheck }] = await Promise.all([
+    supabase.from('restaurants').select('is_published, has_previewed_menu').single(),
+    supabase.from('menu_items').select('id').limit(1),
+  ])
+
   return (
     <main className="min-h-screen p-6 lg:p-10">
       <div className="mx-auto max-w-2xl">
@@ -8,9 +16,9 @@ export default function AdminPage() {
           Dashboard
         </h1>
         <OnboardingChecklist
-          hasMenuItems={false}
-          hasPreviewedMenu={false}
-          isPublished={false}
+          hasMenuItems={!!menuItemsCheck?.length}
+          hasPreviewedMenu={restaurant?.has_previewed_menu ?? false}
+          isPublished={restaurant?.is_published ?? false}
           hasTables={false}
           hasPrintedQr={false}
         />

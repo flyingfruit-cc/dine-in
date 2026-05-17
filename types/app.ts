@@ -7,6 +7,15 @@ export type ActionResult<T> =
 // Use utils/formatPrice.ts for display formatting
 export type PriceCents = number
 
+export interface Restaurant {
+  id: string
+  slug: string
+  name: string
+  is_published: boolean
+  has_previewed_menu: boolean
+  created_at: string
+}
+
 export interface Category {
   id: string
   restaurant_id: string
