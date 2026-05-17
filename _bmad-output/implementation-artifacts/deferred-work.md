@@ -87,6 +87,13 @@
 - `getAuthContext()` `.single()` error silently masked — profile query error is indistinguishable from missing profile row; pre-existing pattern from `menuActions.ts`; fix with shared auth utility in a future refactor.
 - `generateQrUrl` hardcodes `https://app.dine-in-cc.com` production domain — staging/dev QR codes point to production; intentional per architecture spec; revisit when staging environment is set up.
 
+## Deferred from: code review of 3-2-table-deletion-qr-code-invalidation (2026-05-17)
+
+- No focus trap on TableCard delete dialog — keyboard users can Tab behind the overlay; same pre-existing gap as all other dialogs (see 2-7 deferred item); address in an accessibility hardening pass.
+- Fixed overlay stacking-context: `fixed inset-0` dialog rendered inside card div rather than a portal — parent CSS `transform`/`filter` would break fixed positioning; same pattern as MenuItemList.tsx; address if layout ever introduces transforms around the table list.
+- Backdrop click does not dismiss TableCard delete dialog — same pattern as MenuItemList.tsx and CategoryManager.tsx across the whole project; add in a future UX/accessibility pass.
+- `deleteTable` returns `{ success: true }` for a no-op (zero rows matched) — Supabase DELETE with no matching rows returns no error; `router.refresh()` is called as if deletion succeeded; same pattern as `deleteMenuItem`/`deleteCategory`; add row-count assertion in a future defensive hardening pass.
+
 ## Deferred from: code review of 2-7-menu-publish-offline-control-onboarding-checklist (2026-05-16)
 
 - Dialog (take-offline confirmation) has no focus trap and does not restore focus to trigger button on close — implement FocusLock or native `inert` when an accessibility hardening pass is prioritized.

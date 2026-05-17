@@ -38,3 +38,18 @@ export async function createTable(number: number): Promise<ActionResult<{ id: st
   }
   return { success: true, data: { id: data.id } }
 }
+
+export async function deleteTable(tableId: string): Promise<ActionResult<void>> {
+  const { supabase, user, restaurantId } = await getAuthContext()
+  if (!user) return { success: false, error: 'Not authenticated' }
+  if (!restaurantId) return { success: false, error: 'No restaurant found' }
+
+  const { error } = await supabase
+    .from('tables')
+    .delete()
+    .eq('id', tableId)
+    .eq('restaurant_id', restaurantId)
+
+  if (error) return { success: false, error: error.message }
+  return { success: true, data: undefined }
+}

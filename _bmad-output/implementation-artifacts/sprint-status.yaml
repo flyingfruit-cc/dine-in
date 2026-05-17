@@ -64,7 +64,7 @@ development_status:
   # Epic 3: Table Management & QR Code Generation
   epic-3: in-progress
   3-1-table-creation-qr-code-generation-download: done
-  3-2-table-deletion-qr-code-invalidation: backlog
+  3-2-table-deletion-qr-code-invalidation: done
   epic-3-retrospective: optional
 
   # Epic 4: Customer Ordering Flow

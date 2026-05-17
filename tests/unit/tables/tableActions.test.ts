@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 
-import { createTable } from '@/actions/tableActions'
+import { createTable, deleteTable } from '@/actions/tableActions'
 import { createClient } from '@/lib/supabase/server'
 
 const RESTAURANT_ID = 'rest-uuid-123'
@@ -42,6 +42,28 @@ function makeAuthClient(restaurantId: string | null = RESTAURANT_ID, insertResul
         }
       }
       return makeInsertChain(insertResult)
+    }),
+  }
+}
+
+function makeDeleteAuthClient(
+  restaurantId: string | null = RESTAURANT_ID,
+  deleteError: { message: string } | null = null
+) {
+  return {
+    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: USER_ID } } }) },
+    from: vi.fn().mockImplementation((table: string) => {
+      if (table === 'profiles') {
+        const profileData = restaurantId ? { restaurant_id: restaurantId } : null
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: profileData, error: null }),
+        }
+      }
+      const finalEq = vi.fn().mockResolvedValue({ error: deleteError })
+      const firstEq = vi.fn().mockReturnValue({ eq: finalEq })
+      return { delete: vi.fn().mockReturnValue({ eq: firstEq }) }
     }),
   }
 }
@@ -108,6 +130,43 @@ describe('createTable', () => {
       makeAuthClient(RESTAURANT_ID, { data: null, error: { message: 'connection refused' } }) as any
     )
     const result = await createTable(5)
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error).toBe('connection refused')
+  })
+})
+
+describe('deleteTable', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('returns error when not authenticated', async () => {
+    vi.mocked(createClient).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
+      from: vi.fn(),
+    } as any)
+    const result = await deleteTable('table-id-123')
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error).toBe('Not authenticated')
+  })
+
+  it('returns error when no restaurant found', async () => {
+    vi.mocked(createClient).mockResolvedValue(makeDeleteAuthClient(null) as any)
+    const result = await deleteTable('table-id-123')
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error).toBe('No restaurant found')
+  })
+
+  it('returns success on valid delete', async () => {
+    vi.mocked(createClient).mockResolvedValue(makeDeleteAuthClient() as any)
+    const result = await deleteTable('table-id-123')
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data).toBeUndefined()
+  })
+
+  it('returns DB error message on failure', async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeDeleteAuthClient(RESTAURANT_ID, { message: 'connection refused' }) as any
+    )
+    const result = await deleteTable('table-id-123')
     expect(result.success).toBe(false)
     if (!result.success) expect(result.error).toBe('connection refused')
   })
