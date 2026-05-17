@@ -81,6 +81,12 @@
 - `availability_schedule` time string format validation — pre-existing gap in `utils/isAvailable.ts`; add `HH:MM` format guard in that utility when data integrity hardening is prioritized.
 - `categories` prop change stale `activeTab` — not applicable in current SSC pattern (props are stable); revisit if the preview is ever made to live-reload.
 
+## Deferred from: code review of 3-1-table-creation-qr-code-generation-download (2026-05-17)
+
+- Admin page-level auth relies solely on layout + RLS with no explicit `getUser()` guard in `TablesPage` — pre-existing pattern across all admin pages; add page-level session check in a future hardening pass.
+- `getAuthContext()` `.single()` error silently masked — profile query error is indistinguishable from missing profile row; pre-existing pattern from `menuActions.ts`; fix with shared auth utility in a future refactor.
+- `generateQrUrl` hardcodes `https://app.dine-in-cc.com` production domain — staging/dev QR codes point to production; intentional per architecture spec; revisit when staging environment is set up.
+
 ## Deferred from: code review of 2-7-menu-publish-offline-control-onboarding-checklist (2026-05-16)
 
 - Dialog (take-offline confirmation) has no focus trap and does not restore focus to trigger button on close — implement FocusLock or native `inert` when an accessibility hardening pass is prioritized.

@@ -75,3 +75,17 @@ export async function recordMenuPreview(): Promise<ActionResult<void>> {
   if (error) return { success: false, error: error.message }
   return { success: true, data: undefined }
 }
+
+export async function recordQrPrint(): Promise<ActionResult<void>> {
+  const { supabase, user, restaurantId } = await getAuthContext()
+  if (!user) return { success: false, error: 'Not authenticated' }
+  if (!restaurantId) return { success: false, error: 'No restaurant found' }
+
+  const { error } = await supabase
+    .from('restaurants')
+    .update({ has_printed_qr: true })
+    .eq('id', restaurantId)
+
+  if (error) return { success: false, error: error.message }
+  return { success: true, data: undefined }
+}

@@ -4,9 +4,10 @@ import { OnboardingChecklist } from '@/components/admin/OnboardingChecklist'
 export default async function AdminPage() {
   const supabase = await createClient()
 
-  const [{ data: restaurant }, { data: menuItemsCheck }] = await Promise.all([
-    supabase.from('restaurants').select('is_published, has_previewed_menu').single(),
+  const [{ data: restaurant }, { data: menuItemsCheck }, { data: tablesCheck }] = await Promise.all([
+    supabase.from('restaurants').select('is_published, has_previewed_menu, has_printed_qr').single(),
     supabase.from('menu_items').select('id').limit(1),
+    supabase.from('tables').select('id').limit(1),
   ])
 
   return (
@@ -19,8 +20,8 @@ export default async function AdminPage() {
           hasMenuItems={!!menuItemsCheck?.length}
           hasPreviewedMenu={restaurant?.has_previewed_menu ?? false}
           isPublished={restaurant?.is_published ?? false}
-          hasTables={false}
-          hasPrintedQr={false}
+          hasTables={!!tablesCheck?.length}
+          hasPrintedQr={restaurant?.has_printed_qr ?? false}
         />
       </div>
     </main>

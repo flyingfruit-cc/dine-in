@@ -13,6 +13,14 @@ export interface Restaurant {
   name: string
   is_published: boolean
   has_previewed_menu: boolean
+  has_printed_qr: boolean
+  created_at: string
+}
+
+export interface Table {
+  id: string
+  restaurant_id: string
+  number: number
   created_at: string
 }
 
