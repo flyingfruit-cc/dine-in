@@ -58,7 +58,6 @@ export interface MenuItem {
   name: string
   description: string | null
   price_cents: number
-  is_published: boolean
   image_url: string | null
   display_order: number
   variants: VariantGroup[]

@@ -14,13 +14,14 @@ const UNCATEGORIZED_KEY = '__uncategorized__'
 
 function ItemPhoto({ image_url, name }: { image_url: string | null; name: string }) {
   return (
-    <div className="relative h-20 w-20 shrink-0">
-      <div className="absolute inset-0 rounded-lg bg-surface-base" />
+    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-surface-overlay">
       {image_url && (
         <img
           src={image_url}
           alt={name}
-          className="absolute inset-0 h-20 w-20 rounded-lg object-cover"
+          width={80}
+          height={80}
+          className="h-full w-full object-cover"
           onError={(e) => { e.currentTarget.style.display = 'none' }}
         />
       )}

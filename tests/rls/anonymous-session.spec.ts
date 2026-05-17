@@ -36,11 +36,11 @@ test.describe('Anonymous Session Scoping', () => {
     if (!t) throw new Error('Failed to create tableA for anon tests')
     tableA = t
 
-    // Published items in both restaurants
+    // Items in both restaurants
     await svc.from('menu_items').insert([
-      { restaurant_id: restA.id, name: 'Item A1', price_cents: 1000, is_published: true },
-      { restaurant_id: restA.id, name: 'Item A2 (draft)', price_cents: 500, is_published: false },
-      { restaurant_id: restB.id, name: 'Item B1', price_cents: 2000, is_published: true },
+      { restaurant_id: restA.id, name: 'Item A1', price_cents: 1000 },
+      { restaurant_id: restA.id, name: 'Item A2', price_cents: 500 },
+      { restaurant_id: restB.id, name: 'Item B1', price_cents: 2000 },
     ])
   })
 
@@ -49,21 +49,17 @@ test.describe('Anonymous Session Scoping', () => {
     await cleanupTestRestaurants(svc, [restA.id, restB.id])
   })
 
-  test('anon customer can SELECT published items for own restaurant only', async () => {
+  test('anon customer can SELECT items for own restaurant only', async () => {
     const { client, userId } = await createAnonCustomerClient(svc, restA.id, tableA.number)
     createdAnonUserIds.push(userId)
 
-    const { data, error } = await client.from('menu_items').select('id, name, restaurant_id, is_published')
+    const { data, error } = await client.from('menu_items').select('id, name, restaurant_id')
     expect(error).toBeNull()
 
     // Only sees restaurant A items
     expect(data?.every(i => i.restaurant_id === restA.id)).toBe(true)
-    // Only published items
-    expect(data?.every(i => i.is_published === true)).toBe(true)
     // Cannot see restaurant B
     expect(data?.some(i => i.restaurant_id === restB.id)).toBe(false)
-    // Cannot see unpublished items
-    expect(data?.some(i => i.name === 'Item A2 (draft)')).toBe(false)
   })
 
   test('anon customer can INSERT order for own restaurant and table', async () => {

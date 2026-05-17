@@ -56,7 +56,6 @@ const sampleItem = {
   name: 'Soup',
   description: 'Hot soup',
   price_cents: 800,
-  is_published: false,
   image_url: null,
   variants: [],
   availability_schedule: null,

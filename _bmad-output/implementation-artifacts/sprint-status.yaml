@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-09
-last_updated: 2026-05-17
+last_updated: 2026-05-18
 project: dine-in-cc
 project_key: NOKEY
 tracking_system: file-system
@@ -68,9 +68,9 @@ development_status:
   epic-3-retrospective: optional
 
   # Epic 4: Customer Ordering Flow
-  epic-4: backlog
-  4-1-qr-scan-anonymous-session-menu-load: backlog
-  4-2-menu-browsing-by-category-with-availability-filtering: backlog
+  epic-4: in-progress
+  4-1-qr-scan-anonymous-session-menu-load: done
+  4-2-menu-browsing-by-category-with-availability-filtering: done
   4-3-item-detail-variant-configuration-add-to-cart: backlog
   4-4-cart-review: backlog
   4-5-order-submission-confirmation: backlog

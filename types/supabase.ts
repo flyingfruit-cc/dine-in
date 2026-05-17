@@ -49,7 +49,6 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
-          is_published: boolean
           name: string
           price_cents: number
           restaurant_id: string
@@ -59,7 +58,6 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          is_published?: boolean
           name: string
           price_cents?: number
           restaurant_id: string
@@ -69,7 +67,6 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          is_published?: boolean
           name?: string
           price_cents?: number
           restaurant_id?: string

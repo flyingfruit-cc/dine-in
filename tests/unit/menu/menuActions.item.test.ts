@@ -61,7 +61,7 @@ describe('createMenuItem', () => {
   })
 
   it('creates item and returns it', async () => {
-    const newItem = { id: ITEM_ID, restaurant_id: RESTAURANT_ID, name: 'Burger', description: null, price_cents: 1200, is_published: false, image_url: null, category_id: null, created_at: '2026-05-10' }
+    const newItem = { id: ITEM_ID, restaurant_id: RESTAURANT_ID, name: 'Burger', description: null, price_cents: 1200, image_url: null, category_id: null, created_at: '2026-05-10' }
     const insertChain = makeChain({ single: vi.fn().mockResolvedValue({ data: newItem, error: null }) })
 
     vi.mocked(createClient).mockResolvedValue({
@@ -122,7 +122,7 @@ describe('updateMenuItem', () => {
   })
 
   it('updates item and returns it', async () => {
-    const updated = { id: ITEM_ID, restaurant_id: RESTAURANT_ID, name: 'Updated', description: null, price_cents: 1500, is_published: false, image_url: null, category_id: null, created_at: '2026-05-10' }
+    const updated = { id: ITEM_ID, restaurant_id: RESTAURANT_ID, name: 'Updated', description: null, price_cents: 1500, image_url: null, category_id: null, created_at: '2026-05-10' }
     const updateChain = makeChain({ single: vi.fn().mockResolvedValue({ data: updated, error: null }) })
 
     vi.mocked(createClient).mockResolvedValue({

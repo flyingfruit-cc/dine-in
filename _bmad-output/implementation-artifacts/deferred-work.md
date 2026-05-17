@@ -104,3 +104,10 @@
 - `OnboardingChecklist` can never reach `allComplete=true` while `hasTables`/`hasPrintedQr` are hardcoded `false` — by design (Epic 3 scope); wire real values in story 3-1.
 - Double `getAuthContext` auth round trips per action call — each action re-fetches user + restaurant_id; pre-existing pattern from `menuActions.ts`; consolidate with a shared session utility in a future refactor.
 - "Take offline" button has no `aria-label` associating it with the menu — low-impact; add `aria-label="Take menu offline"` in an accessibility pass.
+
+## Deferred from: code review of 4-1-qr-scan-anonymous-session-menu-load and 4-2-menu-browsing-by-category-with-availability-filtering (2026-05-17)
+
+- Stale `sectionOrderRef` in `CategoryTabs.tsx` when categories prop changes — Server Component passes static props so categories don't change after mount; low real-world risk. Revisit if CategoryTabs is ever used with dynamic props.
+- `getSession()` used in `page.tsx` for session existence check rather than `getClaims()` — low risk since the session is not used for privileged data queries (all data fetched via admin client). Will be resolved when anonymous session issuance is refactored out of the Server Component.
+- `select('*')` on `menu_items` fetches all columns — necessary workaround for stale Supabase generated types that don't include `image_url`, `display_order`, `variants`, `availability_schedule`. Revisit when `supabase gen types` is run after the next migration.
+- Server timezone mismatch for availability schedule checks — `isItemAvailable` uses server UTC clock; schedules have no timezone field. Pre-existing in `utils/isAvailable.ts`. Add timezone support to `AvailabilitySchedule` type in a future enhancement.
