@@ -58,6 +58,25 @@ export async function createTestOwner(
   return user
 }
 
+export async function createTestPlatformAdmin(
+  serviceClient: SupabaseClient<Database>,
+  email: string
+) {
+  const { data: { user }, error } = await serviceClient.auth.admin.createUser({
+    email,
+    password: TEST_PASSWORD,
+    email_confirm: true,
+  })
+  if (error || !user) throw new Error(`createTestPlatformAdmin failed: ${error?.message}`)
+
+  const { error: profileError } = await serviceClient
+    .from('profiles')
+    .insert({ id: user.id, restaurant_id: null, is_platform_admin: true })
+  if (profileError) throw new Error(`createTestPlatformAdmin profile failed: ${profileError.message}`)
+
+  return user
+}
+
 export async function signInAsOwner(email: string): Promise<SupabaseClient<Database>> {
   const client = getAnonClient()
   const { error } = await client.auth.signInWithPassword({ email, password: TEST_PASSWORD })

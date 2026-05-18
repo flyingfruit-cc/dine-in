@@ -36,7 +36,7 @@
 
 generated: 2026-05-09
 last_updated: 2026-05-18
-last_event: 5-2-order-management-mark-handled-session-history done (post code-review)
+last_event: 6-1-platform-admin-access-tenant-list done (post code-review)
 project: dine-in-cc
 project_key: NOKEY
 tracking_system: file-system
@@ -84,7 +84,7 @@ development_status:
   epic-5-retrospective: optional
 
   # Epic 6: Platform Administration
-  epic-6: backlog
-  6-1-platform-admin-access-tenant-list: backlog
+  epic-6: in-progress
+  6-1-platform-admin-access-tenant-list: done
   6-2-tenant-account-inspection-data-access: backlog
   epic-6-retrospective: optional
