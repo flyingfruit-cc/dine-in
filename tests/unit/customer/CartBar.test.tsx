@@ -1,8 +1,15 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { CartBar } from '@/components/customer/CartBar'
 import { useCartStore } from '@/stores/cartStore'
 import type { CartItem } from '@/types/app'
+
+const mockPush = vi.fn()
+
+vi.mock('next/navigation', () => ({
+  useParams: () => ({ restaurant_slug: 'test-restaurant', table_number: '5' }),
+  useRouter: () => ({ push: mockPush }),
+}))
 
 const makeCartItem = (cartItemId: string, price_cents: number): CartItem => ({
   cartItemId,
@@ -14,6 +21,7 @@ const makeCartItem = (cartItemId: string, price_cents: number): CartItem => ({
 
 beforeEach(() => {
   useCartStore.setState({ items: [] })
+  mockPush.mockReset()
 })
 
 afterEach(() => cleanup())
@@ -24,10 +32,16 @@ describe('CartBar', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('renders when cart has one item', () => {
+  it('renders complementary landmark when cart has items', () => {
     useCartStore.setState({ items: [makeCartItem('a', 1500)] })
     render(<CartBar />)
     expect(screen.getByRole('complementary')).toBeDefined()
+  })
+
+  it('contains a keyboard-activatable button', () => {
+    useCartStore.setState({ items: [makeCartItem('a', 1500)] })
+    render(<CartBar />)
+    expect(screen.getByRole('button')).toBeDefined()
   })
 
   it('shows item count', () => {
@@ -48,17 +62,24 @@ describe('CartBar', () => {
     expect(screen.getByText('$25.00')).toBeDefined()
   })
 
-  it('aria-label reflects count and total', () => {
+  it('button aria-label reflects count and total', () => {
     useCartStore.setState({ items: [makeCartItem('a', 1500), makeCartItem('b', 1000)] })
     render(<CartBar />)
-    const bar = screen.getByRole('complementary')
-    expect(bar.getAttribute('aria-label')).toBe('Cart: 2 items, $25.00')
+    const btn = screen.getByRole('button')
+    expect(btn.getAttribute('aria-label')).toContain('Cart: 2 items, $25.00')
   })
 
-  it('single item: aria-label has count 1', () => {
+  it('button aria-label uses singular "item" for count of 1', () => {
     useCartStore.setState({ items: [makeCartItem('a', 2200)] })
     render(<CartBar />)
-    const bar = screen.getByRole('complementary')
-    expect(bar.getAttribute('aria-label')).toBe('Cart: 1 item, $22.00')
+    const btn = screen.getByRole('button')
+    expect(btn.getAttribute('aria-label')).toContain('Cart: 1 item, $22.00')
+  })
+
+  it('clicking the button navigates to the cart page', () => {
+    useCartStore.setState({ items: [makeCartItem('a', 1500)] })
+    render(<CartBar />)
+    fireEvent.click(screen.getByRole('button'))
+    expect(mockPush).toHaveBeenCalledWith('/test-restaurant/5/cart')
   })
 })

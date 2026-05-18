@@ -741,7 +741,8 @@ So that I can confirm everything is correct before it goes to the kitchen.
 **When** the order review screen renders
 **Then** each cart item is shown with name, selected variants, quantity, and line total
 **And** the grand total is shown at the bottom
-**And** a single full-width "Place Order" CTA is the only action — no secondary actions
+**And** a full-width "Place Order" CTA is shown as the primary action
+**And** an "Add more items" link in the page header allows the customer to return to the menu with cart preserved
 
 **Given** the customer navigates back from the review screen
 **When** they return to the menu

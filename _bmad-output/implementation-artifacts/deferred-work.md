@@ -119,3 +119,10 @@
 - Menu item availability computed at SSR time only — items that become unavailable mid-session (e.g., restaurant closes a category) do not update for users already on the menu page. Pre-existing limitation also present in story 4-2. Add periodic availability refresh or Realtime subscription if real-time availability is ever required. [app/[restaurant_slug]/[table_number]/page.tsx]
 - `crypto.randomUUID()` unavailable in non-secure (HTTP) contexts — production QR codes always use HTTPS so this is a dev-only concern. If local dev over HTTP is ever needed, add a fallback UUID generator. [components/customer/ItemConfigSheet.tsx]
 - Empty variant group (`options: []`) renders group label with no selectable options — data quality edge case; restaurant admin UI should prevent creating empty option lists. Add a guard in the admin variant editor if this becomes an issue. [components/customer/ItemConfigSheet.tsx]
+
+## Deferred from: code review of 4-4-cart-review (2026-05-18)
+
+- `groupCartItems` silently merges items with same `menuItemId`+variants but different `price_cents` — low-probability edge case (price would need to change between add-to-cart and review); displayed total uses the first item's price. Revisit if dynamic pricing or mid-session price changes are introduced. [cart/page.tsx:19-44]
+- AC3 (back-navigation preserves cart) has no unit test — Zustand in-memory persistence covers this implicitly for client-side navigation; verification requires an e2e test.
+- `groupCartItems` defined at module scope in page file — minor structure concern; move to a shared utility module if needed by other consumers (e.g., order confirmation page in story 4-5).
+- Last-item-removed redirect test mutates store after `fireEvent.click` without explicit `act()` wrapper — React Testing Library wraps events internally so tests pass; add explicit `act()` wrapping if flakiness is ever observed.

@@ -862,7 +862,7 @@ All custom components consume only tokens from the Visual Foundation — no hard
 
 ### Navigation Patterns
 
-**Customer flow:** Linear, no back navigation needed. QR → Menu → Item config (sheet) → Cart review → Confirmation. No persistent nav bar — the CartBar is the only persistent element.
+**Customer flow:** QR → Menu → Item config (sheet) → Cart review → Confirmation. No persistent nav bar — the CartBar is the only persistent element. The cart review screen exposes an explicit "Add more items" action in the page header so customers can return to the menu; cart state is preserved across this navigation.
 
 **Admin UI (mobile):** Bottom tab bar with 3 tabs: Orders · Menu · Settings. "Orders" is the default tab during service. No hamburger menu — all surfaces reachable in 1 tap from any tab.
 
