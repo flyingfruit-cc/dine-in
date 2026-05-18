@@ -201,14 +201,14 @@ Domain regulatory burden is low. No HIPAA, PCI-DSS (payments are post-MVP), or i
 
 ### Integrations (MVP)
 
-- **Supabase Auth** — restaurant owner authentication and anonymous customer session tokens
+- **Supabase Auth** — restaurant owner authentication. Customer pages are served sessionlessly — no auth identity is created for customers.
 - **Supabase PostgREST** — all data operations via REST API with RLS enforcement
 - **Cloudflare** — static asset hosting and edge function routing
 - No POS integrations, email providers, or third-party webhooks in MVP
 
 ### Implementation Considerations
 
-- **Anonymous customer sessions:** Supabase anonymous auth issues a short-lived JWT scoped to `restaurant_id` + `table_id` on QR scan; session expires after dining session inactivity timeout (TBD duration)
+- **Sessionless customer flow:** Customers are served without any auth identity. The URL path `/{restaurant_slug}/{table_number}` is the customer identifier, validated by Server Actions against `public.restaurants` and `public.tables` before any database write. No `auth.users` rows are created for customers.
 - **QR code generation:** Each table gets a unique, stable QR code URL encoding `restaurant_id` + `table_id`; codes generated server-side and available for download/print from Admin UI
 - **Real-time order delivery:** Supabase Realtime subscriptions deliver orders to Admin UI; fallback to short-interval polling (3–5 seconds) if Realtime is unavailable
 
@@ -324,7 +324,7 @@ Domain regulatory burden is low. No HIPAA, PCI-DSS (payments are post-MVP), or i
 - **FR36:** Each restaurant's menu, tables, and orders are fully isolated from all other restaurants
 - **FR37:** Restaurant owner can only access data belonging to their own restaurant
 - **FR38:** Customer ordering session is scoped to the restaurant and table from the scanned QR code
-- **FR39:** System issues an anonymous session token to customers on QR scan that expires after the dining session
+- **FR39:** Customer pages are served sessionlessly. The URL `(restaurant_slug, table_number)` is the only customer identifier; no session token is issued and no auth identity is created. The order-submission Server Action validates the URL pair against the database before inserting.
 
 ### Platform Administration
 
@@ -349,7 +349,7 @@ Domain regulatory burden is low. No HIPAA, PCI-DSS (payments are post-MVP), or i
 ### Security
 
 - **NFR5:** All data in transit is encrypted via HTTPS/TLS — no unencrypted API calls permitted
-- **NFR6:** Customer anonymous session tokens are scoped exclusively to the issuing restaurant and table — tokens from one restaurant cannot access another restaurant's data
+- **NFR6:** Customer order submission is scoped exclusively to the (restaurant, table) pair derived from the URL — the order-submission Server Action validates the slug and table number against the database and inserts only against that resolved (restaurant_id, table_id). Customer write paths cannot affect another restaurant's data.
 - **NFR7:** Restaurant owner authentication tokens are invalidated on logout
 - **NFR8:** The platform admin role is accessible only to explicitly designated accounts — no privilege escalation path exists for restaurant owner accounts
 - **NFR9:** No personally identifiable information is stored or logged for dine-in customers at any point in the order flow

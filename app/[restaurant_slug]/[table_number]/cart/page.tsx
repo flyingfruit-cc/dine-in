@@ -90,7 +90,11 @@ export default function CartPage() {
     const currentItems = items
     setIsSubmitting(true)
     setSubmitError(null)
-    const result = await submitOrder(currentItems)
+    const result = await submitOrder({
+      restaurantSlug: restaurant_slug,
+      tableNumber: Number(table_number),
+      cartItems: currentItems,
+    })
     if (result.success) {
       setConfirmedOrder({ ...result.data, lineItems: currentLineItems })
       useCartStore.getState().clearCart()

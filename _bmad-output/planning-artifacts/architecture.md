@@ -186,12 +186,31 @@ to their own `restaurant_id`.
 via `supabase-ssr` package (included in starter). Tokens invalidated on logout (NFR7).
 *Provided by starter: Yes.*
 
-**Anonymous Customer Sessions:** Supabase anonymous auth. Token issued silently on
-QR scan before menu renders. Token scoped to `restaurant_id` + `table_number` via
-JWT custom claims. Expiry: **2 hours fixed** (no rolling refresh). No PII stored
-at any point (NFR9).
-*Provided by starter: Partial — anonymous auth supported; custom claims and expiry
-are explicit decisions.*
+**Sessionless Customer Flow:** Customer pages are served without any auth identity.
+The URL path `/{restaurant_slug}/{table_number}` is the only customer identifier.
+Server Components fetch menu data via the admin client filtered by the URL slug;
+the `submitOrder` Server Action takes `(restaurantSlug, tableNumber, cartItems)`,
+admin-validates the pair resolves to a real `(restaurant, table)`, and admin-inserts
+the order. No `auth.users` rows are created for customers. No JWTs, no session
+expiry, no PII stored at any point (NFR9).
+
+Customer-facing RLS policies (`customer_insert_order`, `customer_read_menu`,
+`customer_read_own_table`) remain in the database as dormant defense-in-depth.
+They cannot be satisfied without a JWT carrying `is_anonymous = true` and
+`app_metadata` claims, which no customer code path produces. They are reclaimable
+if a future story re-introduces a customer JWT path.
+
+**Rationale (resolved 2026-05-18 via sprint change proposal):** the prior
+anonymous-session design produced unbounded growth of `auth.users` (one row per
+QR-scanning device), required a manual Supabase Dashboard step (custom access
+token hook), and added several painful debugging modes (stale JWT, JWT-RLS-Realtime
+interaction). Owner-side RLS was unchanged. Customer-side RLS was never the
+load-bearing security control — the JWT's `app_metadata.restaurant_id` was
+assigned at session-create time based on the URL the customer landed on, not
+cryptographically tied to anything. Moving validation to the Server Action
+layer preserves the effective threat model and removes the entire class of
+session-management bugs.
+*Provided by starter: N/A — sessionless flow needs no auth integration.*
 
 **Platform Admin Designation:** `is_platform_admin: boolean` column on a `profiles`
 table (default `false`). Checked server-side on every platform admin route via

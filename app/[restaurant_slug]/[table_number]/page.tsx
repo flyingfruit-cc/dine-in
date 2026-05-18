@@ -1,5 +1,4 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { SessionInitializer } from '@/components/customer/SessionInitializer'
 import { CustomerMenuClient } from '@/components/customer/CustomerMenuClient'
 import { isItemAvailable } from '@/utils/isAvailable'
 import type { MenuItem, VariantGroup, AvailabilitySchedule, EnrichedMenuItem } from '@/types/app'
@@ -79,14 +78,11 @@ export default async function CustomerMenuPage({ params }: Props) {
   const hasUncategorized = enrichedItems.some((i) => i.category_id === null)
 
   return (
-    <div>
-      <SessionInitializer restaurantId={restaurant.id} tableNumber={tableNum} />
-      <CustomerMenuClient
-        categories={safeCategories.map((c) => ({ ...c, restaurant_id: restaurant.id }))}
-        items={enrichedItems}
-        hasUncategorized={hasUncategorized}
-        restaurantName={restaurant.name}
-      />
-    </div>
+    <CustomerMenuClient
+      categories={safeCategories.map((c) => ({ ...c, restaurant_id: restaurant.id }))}
+      items={enrichedItems}
+      hasUncategorized={hasUncategorized}
+      restaurantName={restaurant.name}
+    />
   )
 }
