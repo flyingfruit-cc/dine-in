@@ -2,10 +2,11 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, UtensilsCrossed, QrCode, Settings } from 'lucide-react'
+import { LayoutDashboard, Receipt, UtensilsCrossed, QrCode, Settings } from 'lucide-react'
 
 const tabs = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+  { href: '/admin/orders', label: 'Orders', icon: Receipt, exact: false },
   { href: '/admin/menu', label: 'Menu', icon: UtensilsCrossed, exact: false },
   { href: '/admin/tables', label: 'Tables', icon: QrCode, exact: false },
   { href: '/admin/settings', label: 'Settings', icon: Settings, exact: false },

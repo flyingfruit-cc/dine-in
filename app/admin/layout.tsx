@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AdminNav } from '@/components/admin/AdminNav'
+import { RealtimeProvider } from '@/components/shared/RealtimeProvider'
 
 export default async function AdminLayout({
   children,
@@ -20,11 +21,13 @@ export default async function AdminLayout({
   if (!profile?.restaurant_id) redirect('/auth/onboarding')
 
   return (
-    <div className="min-h-screen">
-      <AdminNav />
-      <div className="pb-16 lg:pl-56 lg:pb-0">
-        {children}
+    <RealtimeProvider restaurantId={profile.restaurant_id}>
+      <div className="min-h-screen">
+        <AdminNav />
+        <div className="pb-16 lg:pl-56 lg:pb-0">
+          {children}
+        </div>
       </div>
-    </div>
+    </RealtimeProvider>
   )
 }

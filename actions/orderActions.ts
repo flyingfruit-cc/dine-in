@@ -1,5 +1,11 @@
 'use server'
 
+// Client-selection rules: see docs/conventions/supabase-clients.md
+// Reads use the admin client (RLS-bypassed lookups); the INSERT uses the
+// customer's session client so customer_insert_order RLS validates JWT claims.
+// The INSERT deliberately omits .select() — RETURNING + missing SELECT policy
+// for the anonymous customer triggers a 42501 that masquerades as a WITH CHECK failure.
+
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { ActionResult, CartItem } from '@/types/app'

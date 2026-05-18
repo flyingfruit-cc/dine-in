@@ -36,7 +36,7 @@
 
 generated: 2026-05-09
 last_updated: 2026-05-18
-last_event: epic-4-retrospective completed
+last_event: 5-1-real-time-order-feed-with-polling-fallback done (post code-review)
 project: dine-in-cc
 project_key: NOKEY
 tracking_system: file-system
@@ -78,8 +78,8 @@ development_status:
   epic-4-retrospective: done
 
   # Epic 5: Real-Time Order Management
-  epic-5: backlog
-  5-1-real-time-order-feed-with-polling-fallback: backlog
+  epic-5: in-progress
+  5-1-real-time-order-feed-with-polling-fallback: done
   5-2-order-management-mark-handled-session-history: backlog
   5-3-desktop-2-column-order-layout-detail-panel: backlog
   epic-5-retrospective: optional

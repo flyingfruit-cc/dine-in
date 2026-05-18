@@ -102,3 +102,19 @@ export interface CartItem {
 }
 
 export type EnrichedMenuItem = MenuItem & { isAvailable: boolean }
+
+export interface OrderItem {
+  name: string
+  quantity: number
+  variants: string[]
+}
+
+export interface Order {
+  id: string
+  restaurant_id: string
+  table_id: string
+  items: OrderItem[]
+  submitted_at: string
+  is_handled: boolean
+  handled_at: string | null
+}
