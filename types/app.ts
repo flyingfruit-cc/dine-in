@@ -84,3 +84,21 @@ export interface MenuItemUpdate {
   variants?: VariantGroup[]
   availability_schedule?: AvailabilitySchedule | null
 }
+
+export interface SelectedVariant {
+  groupId: string
+  groupName: string
+  optionId: string
+  optionName: string
+  price_cents: number
+}
+
+export interface CartItem {
+  cartItemId: string
+  menuItemId: string
+  name: string
+  price_cents: number
+  selectedVariants: SelectedVariant[]
+}
+
+export type EnrichedMenuItem = MenuItem & { isAvailable: boolean }

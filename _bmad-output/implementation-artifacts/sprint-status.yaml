@@ -71,7 +71,7 @@ development_status:
   epic-4: in-progress
   4-1-qr-scan-anonymous-session-menu-load: done
   4-2-menu-browsing-by-category-with-availability-filtering: done
-  4-3-item-detail-variant-configuration-add-to-cart: backlog
+  4-3-item-detail-variant-configuration-add-to-cart: done
   4-4-cart-review: backlog
   4-5-order-submission-confirmation: backlog
   epic-4-retrospective: optional

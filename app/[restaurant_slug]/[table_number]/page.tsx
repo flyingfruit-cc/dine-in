@@ -1,10 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { CategoryTabs } from '@/components/customer/CategoryTabs'
-import { MenuItemRow } from '@/components/customer/MenuItemRow'
 import { SessionInitializer } from '@/components/customer/SessionInitializer'
+import { CustomerMenuClient } from '@/components/customer/CustomerMenuClient'
 import { isItemAvailable } from '@/utils/isAvailable'
-import { UNCATEGORIZED_KEY } from '@/utils/customerMenu'
-import type { MenuItem, VariantGroup, AvailabilitySchedule } from '@/types/app'
+import type { MenuItem, VariantGroup, AvailabilitySchedule, EnrichedMenuItem } from '@/types/app'
 
 function MenuUnavailable() {
   return (
@@ -73,70 +71,22 @@ export default async function CustomerMenuPage({ params }: Props) {
 
   const now = new Date()
 
-  const itemsByCategory = safeCategories.reduce<Record<string, typeof items>>((acc, cat) => {
-    acc[cat.id] = items.filter((i) => i.category_id === cat.id)
-    return acc
-  }, {})
-  const uncategorized = items.filter((i) => i.category_id === null)
-  const hasUncategorized = uncategorized.length > 0
-  const showTabBar = safeCategories.length > 0 || hasUncategorized
+  const enrichedItems: EnrichedMenuItem[] = items.map((item) => ({
+    ...item,
+    isAvailable: isItemAvailable(item.availability_schedule, now),
+  }))
+
+  const hasUncategorized = enrichedItems.some((i) => i.category_id === null)
 
   return (
     <div>
       <SessionInitializer restaurantId={restaurant.id} tableNumber={tableNum} />
-
-      {showTabBar && (
-        <CategoryTabs
-          categories={safeCategories.map((c) => ({ ...c, restaurant_id: restaurant.id }))}
-          hasUncategorized={hasUncategorized}
-        />
-      )}
-
-      <header className="px-4 py-4 border-b border-border">
-        <h1 className="text-lg font-semibold text-text-primary">{restaurant.name}</h1>
-      </header>
-
-      <div>
-        {safeCategories.map((cat) => {
-          const catItems = itemsByCategory[cat.id] ?? []
-          return (
-            <section
-              key={cat.id}
-              id={cat.id}
-              className="scroll-mt-14 px-4 py-4"
-            >
-              <h2 className="mb-3 text-base font-semibold text-text-primary">{cat.name}</h2>
-              <div className="flex flex-col">
-                {catItems.map((item) => (
-                  <MenuItemRow
-                    key={item.id}
-                    item={item}
-                    isAvailable={isItemAvailable(item.availability_schedule, now)}
-                  />
-                ))}
-              </div>
-            </section>
-          )
-        })}
-
-        {hasUncategorized && (
-          <section
-            id={UNCATEGORIZED_KEY}
-            className="scroll-mt-14 px-4 py-4"
-          >
-            <h2 className="mb-3 text-base font-semibold text-text-primary">Uncategorized</h2>
-            <div className="flex flex-col">
-              {uncategorized.map((item) => (
-                <MenuItemRow
-                  key={item.id}
-                  item={item}
-                  isAvailable={isItemAvailable(item.availability_schedule, now)}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-      </div>
+      <CustomerMenuClient
+        categories={safeCategories.map((c) => ({ ...c, restaurant_id: restaurant.id }))}
+        items={enrichedItems}
+        hasUncategorized={hasUncategorized}
+        restaurantName={restaurant.name}
+      />
     </div>
   )
 }
