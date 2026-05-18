@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 
 export interface TenantRow {
@@ -40,8 +41,11 @@ export function TenantList({ restaurants }: Props) {
       ) : (
         <ul className="divide-y divide-border">
           {filtered.map((r) => (
-            <li key={r.id} className="py-3">
-              <div className="flex items-center justify-between gap-4">
+            <li key={r.id} className="py-3 hover:bg-surface-raised transition-colors rounded-md focus-within:bg-surface-raised">
+              <Link
+                href={`/platform/tenants/${r.id}`}
+                className="flex items-center justify-between gap-4 px-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
                 <div>
                   <p className="font-semibold text-text-primary">{r.name}</p>
                   <p className="text-sm text-text-secondary">{r.slug}</p>
@@ -58,7 +62,7 @@ export function TenantList({ restaurants }: Props) {
                 >
                   {r.is_published ? 'Published' : 'Offline'}
                 </span>
-              </div>
+              </Link>
             </li>
           ))}
         </ul>

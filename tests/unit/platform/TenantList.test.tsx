@@ -138,4 +138,14 @@ describe('TenantList', () => {
     expect(screen.getByText('Alpha Grill')).toBeDefined()
     expect(screen.getByText('Beta Bistro')).toBeDefined()
   })
+
+  it('each restaurant row links to the tenant detail page', () => {
+    render(
+      <TenantList
+        restaurants={[makeTenant({ id: 'abc-123', name: 'Alpha Grill' })]}
+      />,
+    )
+    const link = screen.getByRole('link', { name: /alpha grill/i })
+    expect(link.getAttribute('href')).toContain('abc-123')
+  })
 })
