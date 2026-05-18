@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useCartStore } from '@/stores/cartStore'
 import { formatPrice } from '@/utils/formatPrice'
+import { submitOrder } from '@/actions/orderActions'
+import { OrderConfirmationScreen } from '@/components/customer/OrderConfirmationScreen'
 import type { CartItem, SelectedVariant } from '@/types/app'
 
 interface CartLineItem {
@@ -14,6 +16,12 @@ interface CartLineItem {
   selectedVariants: SelectedVariant[]
   quantity: number
   cartItemIds: string[]
+}
+
+interface ConfirmedOrderState {
+  restaurantName: string
+  tableNumber: number
+  lineItems: CartLineItem[]
 }
 
 function groupCartItems(items: CartItem[]): CartLineItem[] {
@@ -48,16 +56,49 @@ export default function CartPage() {
   const router = useRouter()
   const items = useCartStore((state) => state.items)
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [confirmedOrder, setConfirmedOrder] = useState<ConfirmedOrderState | null>(null)
+
   useEffect(() => {
-    if (items.length === 0) {
+    if (items.length === 0 && !confirmedOrder) {
       router.replace(`/${restaurant_slug}/${table_number}`)
     }
-  }, [items.length, restaurant_slug, table_number, router])
+  }, [items.length, restaurant_slug, table_number, router, confirmedOrder])
 
   const lineItems = groupCartItems(items)
   const grandTotal = lineItems.reduce((sum, l) => sum + l.price_cents * l.quantity, 0)
 
-  if (items.length === 0) return null
+  if (items.length === 0 && !confirmedOrder) return null
+
+  if (confirmedOrder) {
+    return (
+      <OrderConfirmationScreen
+        restaurantName={confirmedOrder.restaurantName}
+        tableNumber={confirmedOrder.tableNumber}
+        items={confirmedOrder.lineItems.map((l) => ({
+          name: l.name,
+          quantity: l.quantity,
+          variantNames: l.selectedVariants.map((v) => v.optionName),
+        }))}
+      />
+    )
+  }
+
+  async function handlePlaceOrder() {
+    const currentLineItems = lineItems
+    const currentItems = items
+    setIsSubmitting(true)
+    setSubmitError(null)
+    const result = await submitOrder(currentItems)
+    if (result.success) {
+      setConfirmedOrder({ ...result.data, lineItems: currentLineItems })
+      useCartStore.getState().clearCart()
+    } else {
+      setSubmitError(result.error)
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <main className="flex min-h-screen flex-col bg-surface">
@@ -119,15 +160,19 @@ export default function CartPage() {
         className="fixed bottom-0 left-0 right-0 border-t border-border bg-surface px-4 pt-3"
         style={{ paddingBottom: `max(0.75rem, env(safe-area-inset-bottom))` }}
       >
+        {submitError && (
+          <p role="alert" className="pb-2 text-sm text-error text-center">
+            {submitError}
+          </p>
+        )}
         <button
           type="button"
-          onClick={() => {
-            // story 4-5 wires submitOrder Server Action here
-          }}
-          aria-label="Place Order"
-          className="flex w-full min-h-[48px] items-center justify-center rounded-xl bg-accent text-base font-semibold text-white"
+          onClick={handlePlaceOrder}
+          disabled={isSubmitting}
+          aria-label={isSubmitting ? 'Placing order, please wait' : 'Place Order'}
+          className="flex w-full min-h-[48px] items-center justify-center rounded-xl bg-accent text-base font-semibold text-white disabled:opacity-60"
         >
-          Place Order
+          {isSubmitting ? 'Placing order…' : 'Place Order'}
         </button>
       </div>
     </main>

@@ -126,3 +126,10 @@
 - AC3 (back-navigation preserves cart) has no unit test — Zustand in-memory persistence covers this implicitly for client-side navigation; verification requires an e2e test.
 - `groupCartItems` defined at module scope in page file — minor structure concern; move to a shared utility module if needed by other consumers (e.g., order confirmation page in story 4-5).
 - Last-item-removed redirect test mutates store after `fireEvent.click` without explicit `act()` wrapper — React Testing Library wraps events internally so tests pass; add explicit `act()` wrapping if flakiness is ever observed.
+
+## Deferred from: code review of 4-5-order-submission-confirmation (2026-05-18)
+
+- `isSubmitting` not reset to `false` on success path — the confirmation screen entirely replaces the cart UI so no stuck button is visible; state resets on navigation (component unmount). Low-risk; consider `setIsSubmitting(false)` on success for defensive cleanliness. [app/[restaurant_slug]/[table_number]/cart/page.tsx]
+- Double-submit race window before React commits `disabled` prop — `setIsSubmitting(true)` is scheduled async; two rapid taps could both enter `handlePlaceOrder` before re-render. React 18 automatic batching makes this window effectively zero in practice; a `useRef` guard would eliminate it entirely. [app/[restaurant_slug]/[table_number]/cart/page.tsx]
+- `app_metadata` fields destructured without existence check — if `restaurant_id` or `table_number` are absent (misconfigured session), the downstream Supabase query silently returns no rows and the generic error is returned. Add an explicit guard for clearer failure diagnostic. [actions/orderActions.ts]
+- `aria-live="assertive"` on static heading is technically non-functional — text already present on first render so the live region never fires. `useEffect` focus management achieves the same screen-reader announcement. Replace with a post-mount text injection pattern if precise SR announcement timing is required. [components/customer/OrderConfirmationScreen.tsx]

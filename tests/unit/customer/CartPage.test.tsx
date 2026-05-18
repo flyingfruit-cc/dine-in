@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, act } from '@testing-library/react'
 import CartPage from '@/app/[restaurant_slug]/[table_number]/cart/page'
 import { useCartStore } from '@/stores/cartStore'
 import type { CartItem, SelectedVariant } from '@/types/app'
@@ -11,6 +11,11 @@ const mockBack = vi.fn()
 vi.mock('next/navigation', () => ({
   useParams: () => ({ restaurant_slug: 'my-restaurant', table_number: '3' }),
   useRouter: () => ({ push: mockPush, replace: mockReplace, back: mockBack }),
+}))
+
+const mockSubmitOrder = vi.fn()
+vi.mock('@/actions/orderActions', () => ({
+  submitOrder: (...args: unknown[]) => mockSubmitOrder(...args),
 }))
 
 const makeCartItem = (
@@ -26,6 +31,7 @@ beforeEach(() => {
   mockPush.mockReset()
   mockReplace.mockReset()
   mockBack.mockReset()
+  mockSubmitOrder.mockReset()
 })
 
 afterEach(() => cleanup())
@@ -180,5 +186,81 @@ describe('CartPage', () => {
     render(<CartPage />)
     fireEvent.click(screen.getByRole('button', { name: /add more items/i }))
     expect(mockBack).toHaveBeenCalled()
+  })
+
+  it('Place Order button is disabled and shows loading text during submission', async () => {
+    useCartStore.setState({
+      items: [makeCartItem('a', 'm1', 'Burger', 1500)],
+    })
+    // submitOrder never resolves during this test
+    mockSubmitOrder.mockReturnValue(new Promise(() => {}))
+    render(<CartPage />)
+    const placeOrderBtn = screen.getByRole('button', { name: /place order/i })
+    await act(async () => {
+      fireEvent.click(placeOrderBtn)
+    })
+    expect(screen.getByRole('button', { name: /placing order/i })).toBeDefined()
+    expect(screen.getByRole('button', { name: /placing order/i }).hasAttribute('disabled')).toBe(true)
+  })
+
+  it('OrderConfirmationScreen renders after successful submitOrder', async () => {
+    useCartStore.setState({
+      items: [makeCartItem('a', 'm1', 'Burger', 1500)],
+    })
+    mockSubmitOrder.mockResolvedValue({
+      success: true,
+      data: { restaurantName: 'Test Restaurant', tableNumber: 3 },
+    })
+    render(<CartPage />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /place order/i }))
+    })
+    expect(screen.getByText('Your order is with the kitchen')).toBeDefined()
+  })
+
+  it('submitError message renders on failed submitOrder', async () => {
+    useCartStore.setState({
+      items: [makeCartItem('a', 'm1', 'Burger', 1500)],
+    })
+    mockSubmitOrder.mockResolvedValue({
+      success: false,
+      error: "Tap to try again — your order hasn't been sent",
+    })
+    render(<CartPage />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /place order/i }))
+    })
+    expect(screen.getByText(/tap to try again/i)).toBeDefined()
+  })
+
+  it('button re-enabled after failed submitOrder', async () => {
+    useCartStore.setState({
+      items: [makeCartItem('a', 'm1', 'Burger', 1500)],
+    })
+    mockSubmitOrder.mockResolvedValue({
+      success: false,
+      error: "Tap to try again — your order hasn't been sent",
+    })
+    render(<CartPage />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /place order/i }))
+    })
+    const btn = screen.getByRole('button', { name: /place order/i })
+    expect(btn.hasAttribute('disabled')).toBe(false)
+  })
+
+  it('cart is cleared after successful submitOrder', async () => {
+    useCartStore.setState({
+      items: [makeCartItem('a', 'm1', 'Burger', 1500)],
+    })
+    mockSubmitOrder.mockResolvedValue({
+      success: true,
+      data: { restaurantName: 'Test Restaurant', tableNumber: 3 },
+    })
+    render(<CartPage />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /place order/i }))
+    })
+    expect(useCartStore.getState().items).toHaveLength(0)
   })
 })
