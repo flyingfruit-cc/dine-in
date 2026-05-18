@@ -100,4 +100,36 @@ describe('useOrderStore', () => {
     expect(s.orders).toEqual([])
     expect(s.isRealtimeReady).toBe(false)
   })
+
+  it('updateOrder merges fields into an existing order by id', () => {
+    useOrderStore.getState().setOrders([makeOrder({ id: 'a' }), makeOrder({ id: 'b' })])
+    useOrderStore.getState().updateOrder(
+      makeOrder({ id: 'a', is_handled: true, handled_at: '2026-05-18T13:00:00Z' }),
+    )
+    const updated = useOrderStore.getState().orders.find((o) => o.id === 'a')
+    expect(updated?.is_handled).toBe(true)
+    expect(updated?.handled_at).toBe('2026-05-18T13:00:00Z')
+    expect(useOrderStore.getState().orders.find((o) => o.id === 'b')?.is_handled).toBe(false)
+  })
+
+  it('updateOrder preserves DESC sort order', () => {
+    useOrderStore.getState().setOrders([
+      makeOrder({ id: 'newer', submitted_at: '2026-05-18T12:00:00Z' }),
+      makeOrder({ id: 'older', submitted_at: '2026-05-18T10:00:00Z' }),
+    ])
+    useOrderStore.getState().updateOrder(
+      makeOrder({ id: 'older', is_handled: true, handled_at: '2026-05-18T13:00:00Z' }),
+    )
+    const ids = useOrderStore.getState().orders.map((o) => o.id)
+    expect(ids).toEqual(['newer', 'older'])
+  })
+
+  it('updateOrder falls back to addOrder when id is not found', () => {
+    useOrderStore.getState().setOrders([makeOrder({ id: 'existing' })])
+    useOrderStore.getState().updateOrder(
+      makeOrder({ id: 'unknown', is_handled: true, submitted_at: '2026-05-18T11:00:00Z' }),
+    )
+    expect(useOrderStore.getState().orders).toHaveLength(2)
+    expect(useOrderStore.getState().orders.find((o) => o.id === 'unknown')).toBeDefined()
+  })
 })

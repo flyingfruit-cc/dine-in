@@ -33,19 +33,27 @@ type AuthChangeCallback = (
 
 function makeSupabaseFake(initialOrders: Order[] = []) {
   let statusCallback: StatusCallback | null = null
-  let payloadCallback: PayloadCallback | null = null
+  let insertCallback: PayloadCallback | null = null
+  let updateCallback: PayloadCallback | null = null
   let authChangeCallback: AuthChangeCallback | null = null
   const removeChannel = vi.fn()
+  // Query chain: .select('*').eq('restaurant_id', ...).order(...).limit(...)
+  // (is_handled filter removed in 5.2 to load all orders for Handled/All tabs)
   const limit = vi.fn().mockResolvedValue({ data: initialOrders, error: null })
   const orderFn = vi.fn().mockReturnValue({ limit })
-  const eq2 = vi.fn().mockReturnValue({ order: orderFn })
-  const eq1 = vi.fn().mockReturnValue({ eq: eq2 })
+  const eq1 = vi.fn().mockReturnValue({ order: orderFn })
   const select = vi.fn().mockReturnValue({ eq: eq1 })
   const from = vi.fn().mockReturnValue({ select })
 
   const channel = {
-    on: vi.fn(function (this: unknown, _evt: string, _filter: unknown, cb: PayloadCallback) {
-      payloadCallback = cb
+    on: vi.fn(function (
+      this: unknown,
+      _evt: string,
+      filter: { event: string },
+      cb: PayloadCallback,
+    ) {
+      if (filter.event === 'INSERT') insertCallback = cb
+      else if (filter.event === 'UPDATE') updateCallback = cb
       return channel
     }),
     subscribe: vi.fn(function (this: unknown, cb: StatusCallback) {
@@ -83,7 +91,8 @@ function makeSupabaseFake(initialOrders: Order[] = []) {
     triggerStatus: async (status: string) => {
       if (statusCallback) await statusCallback(status)
     },
-    triggerInsert: (order: Order) => payloadCallback?.({ new: order }),
+    triggerInsert: (order: Order) => insertCallback?.({ new: order }),
+    triggerUpdate: (order: Order) => updateCallback?.({ new: order }),
     triggerAuthChange: (
       event: 'TOKEN_REFRESHED' | 'SIGNED_OUT' | string,
       session: { access_token: string } | null,
@@ -94,7 +103,6 @@ function makeSupabaseFake(initialOrders: Order[] = []) {
     getSession,
     select,
     eq1,
-    eq2,
     onAuthStateChange,
     channel,
   }
@@ -119,17 +127,22 @@ afterEach(() => {
 })
 
 describe('RealtimeProvider', () => {
-  it('hydrates the store from initial fetch on mount, filtered to unhandled orders', async () => {
-    const initial = [makeOrder({ id: 'a' }), makeOrder({ id: 'b' })]
-    const { supabase, eq2 } = makeSupabaseFake(initial)
+  it('hydrates the store from initial fetch on mount with all orders (handled + unhandled)', async () => {
+    const initial = [
+      makeOrder({ id: 'a', is_handled: false }),
+      makeOrder({ id: 'b', is_handled: true, handled_at: '2026-05-18T12:30:00Z' }),
+    ]
+    const { supabase, eq1 } = makeSupabaseFake(initial)
     mockCreateClient.mockReturnValue(supabase as never)
 
     render(<RealtimeProvider restaurantId="r-1">child</RealtimeProvider>)
     await flushMicrotasks()
 
+    // Both handled and unhandled orders are loaded into the store
     expect(useOrderStore.getState().orders).toHaveLength(2)
-    // Confirms `.eq('is_handled', false)` is part of the query
-    expect(eq2).toHaveBeenCalledWith('is_handled', false)
+    // Filters only by restaurant_id (no is_handled filter)
+    expect(eq1).toHaveBeenCalledWith('restaurant_id', 'r-1')
+    expect(eq1).not.toHaveBeenCalledWith('is_handled', false)
   })
 
   it('propagates session token via realtime.setAuth before subscribing', async () => {
@@ -269,6 +282,24 @@ describe('RealtimeProvider', () => {
 
     // No new polling fetches should have fired because cleanup already ran.
     expect(select).toHaveBeenCalledTimes(1)
+  })
+
+  it('updateOrder is called when an UPDATE payload arrives', async () => {
+    const initial = [makeOrder({ id: 'existing', is_handled: false })]
+    const { supabase, triggerUpdate } = makeSupabaseFake(initial)
+    mockCreateClient.mockReturnValue(supabase as never)
+
+    render(<RealtimeProvider restaurantId="r-1">child</RealtimeProvider>)
+    await flushMicrotasks()
+    expect(useOrderStore.getState().orders.find((o) => o.id === 'existing')?.is_handled).toBe(false)
+
+    act(() => {
+      triggerUpdate(makeOrder({ id: 'existing', is_handled: true, handled_at: '2026-05-18T13:00:00Z' }))
+    })
+
+    const updated = useOrderStore.getState().orders.find((o) => o.id === 'existing')
+    expect(updated?.is_handled).toBe(true)
+    expect(updated?.handled_at).toBe('2026-05-18T13:00:00Z')
   })
 
   it('renders children', async () => {

@@ -6,6 +6,7 @@ interface OrderStore {
   isRealtimeReady: boolean
   setOrders: (orders: Order[]) => void
   addOrder: (order: Order) => void
+  updateOrder: (order: Order) => void
   markHandled: (orderId: string) => void
   setRealtimeReady: (ready: boolean) => void
   reset: () => void
@@ -23,6 +24,15 @@ export const useOrderStore = create<OrderStore>((set) => ({
     set((state) => {
       if (state.orders.some((o) => o.id === order.id)) return state
       return { orders: sortDesc([order, ...state.orders]) }
+    }),
+  updateOrder: (order) =>
+    set((state) => {
+      const exists = state.orders.some((o) => o.id === order.id)
+      if (!exists) {
+        // Defensive fallback: INSERT event may have been missed before UPDATE arrived
+        return { orders: sortDesc([order, ...state.orders]) }
+      }
+      return { orders: state.orders.map((o) => (o.id === order.id ? order : o)) }
     }),
   markHandled: (orderId) =>
     set((state) => ({

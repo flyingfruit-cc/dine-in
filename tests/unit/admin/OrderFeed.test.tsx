@@ -1,8 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { render, screen, cleanup, act } from '@testing-library/react'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { render, screen, cleanup, act, fireEvent } from '@testing-library/react'
 import { OrderFeed } from '@/components/admin/OrderFeed'
 import { useOrderStore } from '@/stores/orderStore'
 import type { Order } from '@/types/app'
+
+vi.mock('@/actions/orderActions', () => ({
+  markOrderHandled: vi.fn().mockResolvedValue({ success: true, data: undefined }),
+}))
 
 function makeOrder(overrides: Partial<Order> = {}): Order {
   return {
@@ -112,5 +116,68 @@ describe('OrderFeed', () => {
     const { container } = render(<OrderFeed tablesById={{}} />)
     const wrapper = container.querySelector('[data-realtime-ready]')
     expect(wrapper?.getAttribute('data-realtime-ready')).toBe('false')
+  })
+
+  it('renders Active, Handled, and All tab buttons', () => {
+    render(<OrderFeed tablesById={{}} />)
+    expect(screen.getByRole('tab', { name: 'Active' })).toBeDefined()
+    expect(screen.getByRole('tab', { name: 'Handled' })).toBeDefined()
+    expect(screen.getByRole('tab', { name: 'All' })).toBeDefined()
+  })
+
+  it('Handled tab shows only handled orders', () => {
+    useOrderStore.setState({
+      orders: [
+        makeOrder({ id: 'a', table_id: 't-1', is_handled: false }),
+        makeOrder({ id: 'b', table_id: 't-2', is_handled: true, handled_at: new Date().toISOString() }),
+      ],
+      isRealtimeReady: true,
+    })
+    render(<OrderFeed tablesById={{ 't-1': 1, 't-2': 2 }} />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Handled' }))
+    expect(screen.queryByText('Table 1')).toBeNull()
+    expect(screen.getByText('Table 2')).toBeDefined()
+  })
+
+  it('All tab shows all orders', () => {
+    useOrderStore.setState({
+      orders: [
+        makeOrder({ id: 'a', table_id: 't-1', is_handled: false }),
+        makeOrder({ id: 'b', table_id: 't-2', is_handled: true, handled_at: new Date().toISOString() }),
+      ],
+      isRealtimeReady: true,
+    })
+    render(<OrderFeed tablesById={{ 't-1': 1, 't-2': 2 }} />)
+    fireEvent.click(screen.getByRole('tab', { name: 'All' }))
+    expect(screen.getByText('Table 1')).toBeDefined()
+    expect(screen.getByText('Table 2')).toBeDefined()
+  })
+
+  it('Handled tab shows empty state when no handled orders', () => {
+    useOrderStore.setState({
+      orders: [makeOrder({ id: 'a', table_id: 't-1', is_handled: false })],
+      isRealtimeReady: true,
+    })
+    render(<OrderFeed tablesById={{ 't-1': 1 }} />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Handled' }))
+    expect(screen.getByText(/no handled orders yet/i)).toBeDefined()
+  })
+
+  it('handleMarkHandled updates the store optimistically', async () => {
+    const { markOrderHandled } = await import('@/actions/orderActions')
+    useOrderStore.setState({
+      orders: [makeOrder({ id: 'target', table_id: 't-1', is_handled: false })],
+      isRealtimeReady: true,
+    })
+    render(<OrderFeed tablesById={{ 't-1': 1 }} />)
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /mark handled/i }))
+    })
+
+    // Store updated optimistically
+    expect(useOrderStore.getState().orders.find((o) => o.id === 'target')?.is_handled).toBe(true)
+    // Server Action called
+    expect(markOrderHandled).toHaveBeenCalledWith('target')
   })
 })

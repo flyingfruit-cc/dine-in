@@ -147,3 +147,8 @@
 - `OrderFeed` flashes "No orders yet" during initial hydration before `RealtimeProvider` runs — the no-SSR-of-orders choice is intentional per story Dev Notes. Add a `hasHydrated` flag in the store as a polish pass. [components/admin/OrderFeed.tsx]
 - `RealtimeProvider` unit test does not assert `setAuth`-before-`subscribe` ordering — this invariant is the load-bearing fix from the e2e iteration. Add a `mock.invocationCallOrder` assertion when patches #1/#2 (auth-state-change listener) are applied. [tests/unit/shared/RealtimeProvider.test.tsx]
 - e2e smoke test uses service-role insert — exercises owner-side Realtime delivery end-to-end but bypasses `customer_insert_order` RLS, so the 42501-style bugs that retro action A1 was meant to catch are still only covered by mocks. Drive the customer flow through the UI (or via `createAnonCustomerClient` in `tests/rls/helpers.ts`) in a future story. [tests/e2e/realtime-order-delivery.spec.ts]
+
+## Deferred from: code review of 5-2-order-management-mark-handled-session-history (2026-05-18)
+
+- `handled_at` uses application clock (`new Date().toISOString()`) not DB `now()` — server process clock has negligible drift via NTP; using DB `now()` for true idempotency would need a raw SQL fragment or RPC. Out of 5.2 scope; revisit if cross-server clock skew surfaces in audit reports. [actions/orderActions.ts]
+- Tabs ARIA upgrade to full WAI-ARIA tablist pattern — current OrderFeed has half-implemented ARIA (role=tablist + role=tab + aria-selected only). Spec scope honored as-is; future a11y pass to add `role=tabpanel`, `aria-controls`/`id` linkage, and arrow-key (Home/End/Left/Right) navigation handlers. [components/admin/OrderFeed.tsx]

@@ -6,6 +6,7 @@
 // Customer-facing RLS policies remain in the DB as dormant defense-in-depth.
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import type { ActionResult, CartItem } from '@/types/app'
 
 export interface SubmitOrderData {
@@ -96,4 +97,25 @@ export async function submitOrder({
       tableNumber,
     },
   }
+}
+
+export async function markOrderHandled(orderId: string): Promise<ActionResult<void>> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Not authenticated' }
+
+  // No .select() after UPDATE — avoids 42501/RETURNING issue (see docs/conventions/supabase-clients.md)
+  // owner_update_orders RLS policy gates by restaurant_id = get_my_restaurant_id()
+  // is_handled=false guard makes the UPDATE idempotent: a double-tap can't overwrite handled_at.
+  const { error } = await supabase
+    .from('orders')
+    .update({ is_handled: true, handled_at: new Date().toISOString() })
+    .eq('id', orderId)
+    .eq('is_handled', false)
+
+  if (error) {
+    console.error('[markOrderHandled]', error)
+    return { success: false, error: 'Failed to mark order as handled' }
+  }
+  return { success: true, data: undefined }
 }

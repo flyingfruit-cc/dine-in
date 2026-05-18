@@ -28,11 +28,12 @@ export function RealtimeProvider({ restaurantId, children }: Props) {
       if (inFlightRef.current) return
       inFlightRef.current = true
       try {
+        // Fetches ALL orders (handled + unhandled) so Handled/All tabs populate correctly.
+        // Known limit: if >100 total orders in one shift, oldest handled may not appear.
         const { data, error } = await supabase
           .from('orders')
           .select('*')
           .eq('restaurant_id', restaurantId)
-          .eq('is_handled', false)
           .order('submitted_at', { ascending: false })
           .limit(100)
         if (error) {
@@ -75,7 +76,6 @@ export function RealtimeProvider({ restaurantId, children }: Props) {
       channel = supabase
         .channel(`orders-${restaurantId}`)
         .on(
-          // @ts-expect-error supabase-js postgres_changes literal-type is loose
           'postgres_changes',
           {
             event: 'INSERT',
@@ -85,6 +85,18 @@ export function RealtimeProvider({ restaurantId, children }: Props) {
           },
           (payload: { new: Order }) => {
             useOrderStore.getState().addOrder(payload.new)
+          },
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'orders',
+            filter: `restaurant_id=eq.${restaurantId}`,
+          },
+          (payload: { new: Order }) => {
+            useOrderStore.getState().updateOrder(payload.new)
           },
         )
         .subscribe(async (status: string) => {

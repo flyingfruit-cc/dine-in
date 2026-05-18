@@ -1,5 +1,5 @@
-import { describe, it, expect, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { describe, it, expect, afterEach, vi } from 'vitest'
+import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { OrderCard, itemSummary } from '@/components/admin/OrderCard'
 import type { Order, OrderItem } from '@/types/app'
 
@@ -94,5 +94,60 @@ describe('OrderCard', () => {
     expect(screen.getByText('Table —')).toBeDefined()
     const card = screen.getByLabelText(/^Order, /)
     expect(card.getAttribute('aria-label')).not.toContain('Table 0')
+  })
+
+  it('shows "Mark handled" link on active orders', () => {
+    render(<OrderCard order={makeOrder()} tableNumber={1} onMarkHandled={() => {}} />)
+    expect(screen.getByRole('button', { name: /mark handled/i })).toBeDefined()
+  })
+
+  it('hides "Mark handled" link on handled orders', () => {
+    const order = makeOrder({ is_handled: true, handled_at: new Date().toISOString() })
+    render(<OrderCard order={order} tableNumber={1} onMarkHandled={() => {}} />)
+    expect(screen.queryByRole('button', { name: /mark handled/i })).toBeNull()
+  })
+
+  it('calls onMarkHandled when the link is clicked', () => {
+    const onMarkHandled = vi.fn()
+    render(<OrderCard order={makeOrder()} tableNumber={1} onMarkHandled={onMarkHandled} />)
+    fireEvent.click(screen.getByRole('button', { name: /mark handled/i }))
+    expect(onMarkHandled).toHaveBeenCalledOnce()
+  })
+
+  it('tapping the row expand button toggles inline expanded view', () => {
+    const order = makeOrder({
+      items: [{ name: 'Burger', quantity: 2, variants: ['No pickles'] }],
+    })
+    render(<OrderCard order={order} tableNumber={1} />)
+    // Expanded view is not visible initially
+    expect(screen.queryByText(/2× Burger/)).toBeNull()
+
+    // The expand button carries the aria-label of the card
+    fireEvent.click(screen.getByLabelText(/Order for Table 1/))
+    expect(screen.getByText(/2× Burger/)).toBeDefined()
+    expect(screen.getByText('No pickles')).toBeDefined()
+
+    // Tap again to collapse
+    fireEvent.click(screen.getByLabelText(/Order for Table 1/))
+    expect(screen.queryByText(/2× Burger/)).toBeNull()
+  })
+
+  it('clicking "Mark handled" does not toggle expand', () => {
+    const onMarkHandled = vi.fn()
+    render(<OrderCard order={makeOrder()} tableNumber={1} onMarkHandled={onMarkHandled} />)
+    fireEvent.click(screen.getByRole('button', { name: /mark handled/i }))
+    // Expand should NOT have opened (mark-handled is a sibling of the expand button)
+    expect(screen.queryByText(/1× Burger/)).toBeNull()
+  })
+
+  it('expanded view shows no prices', () => {
+    const order = makeOrder({
+      items: [{ name: 'Steak', quantity: 1, variants: ['Medium-rare'] }],
+    })
+    render(<OrderCard order={order} tableNumber={1} />)
+    fireEvent.click(screen.getByLabelText(/Order for Table 1/))
+    // price_cents or $ should not appear
+    expect(screen.queryByText(/\$/)).toBeNull()
+    expect(screen.queryByText(/price/i)).toBeNull()
   })
 })
