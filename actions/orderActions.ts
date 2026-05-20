@@ -102,6 +102,26 @@ export async function submitOrder({
   }
 }
 
+export async function unbumpOrder(orderId: string): Promise<ActionResult<void>> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Not authenticated' }
+
+  // Idempotency guard: only unbump rows that ARE currently handled.
+  // Mirrors markOrderHandled's .eq('is_handled', false) safeguard.
+  const { error } = await supabase
+    .from('orders')
+    .update({ is_handled: false, handled_at: null })
+    .eq('id', orderId)
+    .eq('is_handled', true)
+
+  if (error) {
+    console.error('[unbumpOrder]', error)
+    return { success: false, error: "Tap to retry — undo didn't send" }
+  }
+  return { success: true, data: undefined }
+}
+
 export async function markOrderHandled(orderId: string): Promise<ActionResult<void>> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

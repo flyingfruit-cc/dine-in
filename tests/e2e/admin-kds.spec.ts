@@ -79,6 +79,88 @@ test.describe('Admin KDS page', () => {
     await expect(page.getByText('Waiting for orders')).toBeVisible()
   })
 
+  test('bumping an order removes it from KDS and marks is_handled=true', async ({ page }) => {
+    const tableId = await createTestTable(svc, restaurantId, 42)
+    const items = [{ name: 'Burger', quantity: 1, variants: [], unit_price_cents: 1500 }]
+    const orderId = await createTestOrder(svc, restaurantId, tableId, items)
+
+    await signIn(page)
+    await page.goto('/admin/kds')
+
+    const ticket = page.locator('article', { hasText: 'Table 42' })
+    await expect(ticket).toBeVisible()
+
+    await ticket.getByRole('button', { name: /bump/i }).click()
+
+    // Ticket should disappear within a few seconds (animation + store update + filter)
+    await expect(ticket).toBeHidden({ timeout: 2000 })
+
+    // Undo affordance should appear and reference this specific table — guards
+    // against an unrelated banner satisfying a generic /undo/i selector.
+    await expect(page.getByRole('button', { name: /undo bump for table 42/i })).toBeVisible()
+
+    // Verify DB state — poll because the optimistic UI hide can complete before
+    // the Server Action's UPDATE lands.
+    await expect
+      .poll(
+        async () => {
+          const { data } = await svc
+            .from('orders')
+            .select('is_handled')
+            .eq('id', orderId)
+            .single()
+          return data?.is_handled
+        },
+        { timeout: 3000 },
+      )
+      .toBe(true)
+    const { data: finalOrder } = await svc
+      .from('orders')
+      .select('handled_at')
+      .eq('id', orderId)
+      .single()
+    expect(finalOrder?.handled_at).not.toBeNull()
+  })
+
+  test('Undo restores a bumped order on KDS', async ({ page }) => {
+    const tableId = await createTestTable(svc, restaurantId, 43)
+    const items = [{ name: 'Fries', quantity: 1, variants: [], unit_price_cents: 500 }]
+    const orderId = await createTestOrder(svc, restaurantId, tableId, items)
+
+    await signIn(page)
+    await page.goto('/admin/kds')
+
+    await page.locator('article', { hasText: 'Table 43' }).getByRole('button', { name: /bump/i }).click()
+    const undoBtn = page.getByRole('button', { name: /undo bump for table 43/i })
+    await expect(undoBtn).toBeVisible()
+
+    await undoBtn.click()
+
+    // Ticket should reappear
+    await expect(page.locator('article', { hasText: 'Table 43' })).toBeVisible({ timeout: 2000 })
+
+    // Verify DB state — poll because Undo's Server Action may not have settled yet.
+    await expect
+      .poll(
+        async () => {
+          const { data } = await svc
+            .from('orders')
+            .select('is_handled')
+            .eq('id', orderId)
+            .single()
+          return data?.is_handled
+        },
+        { timeout: 3000 },
+      )
+      .toBe(false)
+    const { data: finalOrder } = await svc
+      .from('orders')
+      .select('handled_at')
+      .eq('id', orderId)
+      .single()
+    expect(finalOrder?.handled_at).toBeNull()
+  })
+
   test('KDS renders order tickets with Bump button and no horizontal scrollbar', async ({ page }) => {
     const tableId = await createTestTable(svc, restaurantId, 1)
     const items = [{ name: 'Burger', quantity: 1, variants: [], unit_price_cents: 1500 }]

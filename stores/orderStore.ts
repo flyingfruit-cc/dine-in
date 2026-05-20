@@ -8,6 +8,7 @@ interface OrderStore {
   addOrder: (order: Order) => void
   updateOrder: (order: Order) => void
   markHandled: (orderId: string) => void
+  unmarkHandled: (orderId: string) => void
   setRealtimeReady: (ready: boolean) => void
   reset: () => void
 }
@@ -38,6 +39,12 @@ export const useOrderStore = create<OrderStore>((set) => ({
     set((state) => ({
       orders: state.orders.map((o) =>
         o.id === orderId ? { ...o, is_handled: true, handled_at: new Date().toISOString() } : o,
+      ),
+    })),
+  unmarkHandled: (orderId) =>
+    set((state) => ({
+      orders: state.orders.map((o) =>
+        o.id === orderId ? { ...o, is_handled: false, handled_at: null } : o,
       ),
     })),
   setRealtimeReady: (ready) => set({ isRealtimeReady: ready }),
