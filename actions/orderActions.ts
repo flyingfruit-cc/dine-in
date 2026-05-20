@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { ActionResult, CartItem, OrderStatus } from '@/types/app'
 
 export interface SubmitOrderData {
+  id: string
   restaurantName: string
   tableNumber: number
 }
@@ -86,7 +87,9 @@ export async function submitOrder({
   const items = Array.from(map.values())
   const total_cents = items.reduce((sum, i) => sum + i.quantity * i.unit_price_cents, 0)
 
-  const { error: insertError } = await adminClient
+  // Admin client: .select() after INSERT is allowed here — admin client uses the
+  // service role, which bypasses the 42501 RETURNING trap that applies to anon writes.
+  const { data: inserted, error: insertError } = await adminClient
     .from('orders')
     .insert({
       restaurant_id: restaurant.id,
@@ -95,14 +98,22 @@ export async function submitOrder({
       total_cents,
       is_handled: false,
     })
+    .select('id')
+    .single()
 
   if (insertError) {
+    return { success: false, error: RETRY_ERROR }
+  }
+
+  if (!inserted) {
+    console.error('[submitOrder] insert succeeded but row read failed')
     return { success: false, error: RETRY_ERROR }
   }
 
   return {
     success: true,
     data: {
+      id: inserted.id,
       restaurantName: restaurant.name,
       tableNumber,
     },

@@ -15,15 +15,17 @@ const TABLE_ID = 'table-uuid-222'
 function makeAdminClient(overrides: {
   restaurantResult?: { data: unknown; error: unknown }
   tableResult?: { data: unknown; error: unknown }
-  insertResult?: { error: unknown }
+  insertResult?: { data: { id: string } | null; error: unknown }
 } = {}) {
   const {
     restaurantResult = { data: { id: RESTAURANT_ID, name: 'Test Restaurant' }, error: null },
     tableResult = { data: { id: TABLE_ID }, error: null },
-    insertResult = { error: null },
+    insertResult = { data: { id: 'order-uuid-xxx' }, error: null },
   } = overrides
 
-  const insertMock = vi.fn().mockResolvedValue(insertResult)
+  const insertSingleMock = vi.fn().mockResolvedValue(insertResult)
+  const insertSelectMock = vi.fn().mockReturnValue({ single: insertSingleMock })
+  const insertMock = vi.fn().mockReturnValue({ select: insertSelectMock })
 
   const client = {
     from: vi.fn().mockImplementation((table: string) => {
@@ -153,30 +155,20 @@ describe('submitOrder', () => {
     expect(insertArg.total_cents).toBe(2200)
   })
 
-  it('does not call .select() after insert (42501 RETURNING guard)', async () => {
+  it('returns data.id from the inserted row on success', async () => {
     const client = makeAdminClient()
     vi.mocked(createAdminClient).mockReturnValue(client as never)
 
-    await submitOrder({
+    const result = await submitOrder({
       restaurantSlug: 'test-restaurant',
       tableNumber: 1,
       cartItems: [
-        {
-          cartItemId: 'ci-1',
-          menuItemId: 'mi-1',
-          name: 'Item',
-          price_cents: 500,
-          selectedVariants: [],
-        },
+        { cartItemId: 'ci-1', menuItemId: 'mi-1', name: 'Item', price_cents: 500, selectedVariants: [] },
       ],
     })
 
-    // The insert mock chain should not have a .select() call after .insert()
-    // We verify by checking the insert mock was called directly (no chained .select())
-    expect(client._insertMock).toHaveBeenCalledTimes(1)
-    // The result of insert() is awaited directly, not chained further
-    const ordersFrom = client.from.mock.calls.find((c: string[]) => c[0] === 'orders')
-    expect(ordersFrom).toBeDefined()
+    expect(result.success).toBe(true)
+    expect((result as { data: { id: string } }).data.id).toBe('order-uuid-xxx')
   })
 
   it('returns failure when cartItems is empty', async () => {

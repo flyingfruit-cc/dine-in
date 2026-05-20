@@ -1,5 +1,11 @@
 import type { OrderStatus } from '@/types/app'
 
+export const ORDER_STATUSES: readonly OrderStatus[] = ['received', 'preparing', 'ready', 'completed'] as const
+
+export function isOrderStatus(value: unknown): value is OrderStatus {
+  return typeof value === 'string' && (ORDER_STATUSES as readonly string[]).includes(value)
+}
+
 export const STATUS_DOT_CLASS: Record<OrderStatus, string> = {
   received: 'bg-accent',
   preparing: 'bg-info',

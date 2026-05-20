@@ -252,3 +252,9 @@
 - `signInAsOwner` test session lifetime is not refreshed between assertions — JWT could expire mid-suite, pre-existing helper behavior, no observed flakes. [tests/rls/order-status.spec.ts]
 - `beforeAll` partial-failure path would dereference undefined `restA`/`restB` in `afterAll` cleanup — pre-existing test pattern shared with `tenant-isolation.spec.ts`. [tests/rls/order-status.spec.ts:31-49]
 - Six fixture builders (`makeOrder`) duplicate the same factory — adding `status` required editing six files. Pre-existing tech debt; consolidating would expand the diff beyond story scope. [tests/unit/admin/*, tests/unit/shared/*, tests/unit/stores/*]
+
+## Deferred from: code review of 9-3-customer-order-tracking-on-confirmation-screen (2026-05-20)
+
+- Task 7 manual smoke test pending — workflow-by-design. Satisfies the Done Gate for Stories 9.1, 9.2, and 9.3 once executed. [9-3 Task 7]
+- Admin-client throw not wrapped in try/catch on the new SSR order tracking page — established project pattern; the menu page (`app/[restaurant_slug]/[table_number]/page.tsx`) does not try/catch either. Fix would be project-wide, not 9.3-scoped. [app/[restaurant_slug]/[table_number]/order/[order_id]/page.tsx]
+- `submitOrder` lacks idempotency — duplicate orders are possible if a user retries after the (unreachable) "insert succeeded but row read failed" branch fires. Pre-existing concern in `submitOrder`; not introduced by 9.3. Would need a client-generated idempotency key or a recent-duplicate-detection query. [actions/orderActions.ts:99-105]

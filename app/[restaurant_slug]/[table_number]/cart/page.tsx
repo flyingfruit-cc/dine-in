@@ -1,11 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useCartStore } from '@/stores/cartStore'
 import { formatPrice } from '@/utils/formatPrice'
 import { submitOrder } from '@/actions/orderActions'
-import { OrderConfirmationScreen } from '@/components/customer/OrderConfirmationScreen'
 import type { CartItem, SelectedVariant } from '@/types/app'
 
 interface CartLineItem {
@@ -16,12 +15,6 @@ interface CartLineItem {
   selectedVariants: SelectedVariant[]
   quantity: number
   cartItemIds: string[]
-}
-
-interface ConfirmedOrderState {
-  restaurantName: string
-  tableNumber: number
-  lineItems: CartLineItem[]
 }
 
 function groupCartItems(items: CartItem[]): CartLineItem[] {
@@ -55,38 +48,23 @@ export default function CartPage() {
   const { restaurant_slug, table_number } = useParams<{ restaurant_slug: string; table_number: string }>()
   const router = useRouter()
   const items = useCartStore((state) => state.items)
+  const hasSubmittedRef = useRef(false)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [confirmedOrder, setConfirmedOrder] = useState<ConfirmedOrderState | null>(null)
 
   useEffect(() => {
-    if (items.length === 0 && !confirmedOrder) {
+    if (items.length === 0 && !hasSubmittedRef.current) {
       router.replace(`/${restaurant_slug}/${table_number}`)
     }
-  }, [items.length, restaurant_slug, table_number, router, confirmedOrder])
+  }, [items.length, restaurant_slug, table_number, router])
 
   const lineItems = groupCartItems(items)
   const grandTotal = lineItems.reduce((sum, l) => sum + l.price_cents * l.quantity, 0)
 
-  if (items.length === 0 && !confirmedOrder) return null
-
-  if (confirmedOrder) {
-    return (
-      <OrderConfirmationScreen
-        restaurantName={confirmedOrder.restaurantName}
-        tableNumber={confirmedOrder.tableNumber}
-        items={confirmedOrder.lineItems.map((l) => ({
-          name: l.name,
-          quantity: l.quantity,
-          variantNames: l.selectedVariants.map((v) => v.optionName),
-        }))}
-      />
-    )
-  }
+  if (hasSubmittedRef.current || items.length === 0) return null
 
   async function handlePlaceOrder() {
-    const currentLineItems = lineItems
     const currentItems = items
     setIsSubmitting(true)
     setSubmitError(null)
@@ -96,8 +74,9 @@ export default function CartPage() {
       cartItems: currentItems,
     })
     if (result.success) {
-      setConfirmedOrder({ ...result.data, lineItems: currentLineItems })
+      hasSubmittedRef.current = true
       useCartStore.getState().clearCart()
+      router.replace(`/${restaurant_slug}/${table_number}/order/${result.data.id}`)
     } else {
       setSubmitError(result.error)
       setIsSubmitting(false)

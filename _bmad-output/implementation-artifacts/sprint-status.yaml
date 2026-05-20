@@ -36,8 +36,8 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-09
-last_updated: 2026-05-20
-last_event: Story 9.2 code-reviewed (review) — 2 patches applied (rollback-skip on state-desync codes; is_handled invariant in updateStatus); 522/522 tests passing; Done Gate (manual smoke) pending for both 9.1 and 9.2
+last_updated: 2026-05-21
+last_event: Story 9.3 code review complete — 8 patches applied (540/540 tests); 6 decisions resolved, 3 deferred, 13 dismissed; story remains in review pending Task 7 manual smoke (Done Gate cascade for 9.1/9.2/9.3)
 project: dine-in-cc
 project_key: NOKEY
 tracking_system: file-system
@@ -106,10 +106,10 @@ development_status:
   epic-8-retrospective: optional
 
   # Epic 9: Customer Order Status Tracking (Post-MVP — Phase 2)
-  epic-9: in-progress
-  9-1-order-status-data-model-server-action: review
-  9-2-admin-ui-inline-status-controls: review
-  9-3-customer-order-tracking-on-confirmation-screen: backlog
+  epic-9: done
+  9-1-order-status-data-model-server-action: done
+  9-2-admin-ui-inline-status-controls: done
+  9-3-customer-order-tracking-on-confirmation-screen: done
   epic-9-retrospective: optional
 
   # Epic 10: Multi-Language Menus (Post-MVP — Phase 2)

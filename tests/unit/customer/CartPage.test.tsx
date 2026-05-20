@@ -203,19 +203,19 @@ describe('CartPage', () => {
     expect(screen.getByRole('button', { name: /placing order/i }).hasAttribute('disabled')).toBe(true)
   })
 
-  it('OrderConfirmationScreen renders after successful submitOrder', async () => {
+  it('navigates to order tracking route after successful submitOrder', async () => {
     useCartStore.setState({
       items: [makeCartItem('a', 'm1', 'Burger', 1500)],
     })
     mockSubmitOrder.mockResolvedValue({
       success: true,
-      data: { restaurantName: 'Test Restaurant', tableNumber: 3 },
+      data: { id: 'test-order-id', restaurantName: 'Test Restaurant', tableNumber: 3 },
     })
     render(<CartPage />)
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /place order/i }))
     })
-    expect(screen.getByText('Your order is with the kitchen')).toBeDefined()
+    expect(mockReplace).toHaveBeenCalledWith('/my-restaurant/3/order/test-order-id')
   })
 
   it('submitError message renders on failed submitOrder', async () => {
@@ -255,7 +255,7 @@ describe('CartPage', () => {
     })
     mockSubmitOrder.mockResolvedValue({
       success: true,
-      data: { restaurantName: 'Test Restaurant', tableNumber: 3 },
+      data: { id: 'test-order-id', restaurantName: 'Test Restaurant', tableNumber: 3 },
     })
     render(<CartPage />)
     await act(async () => {
