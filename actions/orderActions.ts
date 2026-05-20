@@ -57,7 +57,7 @@ export async function submitOrder({
     return { success: false, error: RETRY_ERROR }
   }
 
-  const map = new Map<string, { name: string; quantity: number; variants: string[] }>()
+  const map = new Map<string, { name: string; quantity: number; variants: string[]; unit_price_cents: number }>()
   for (const item of cartItems) {
     const variantKey = item.selectedVariants
       .map((v) => `${v.groupId}:${v.optionId}`)
@@ -72,10 +72,12 @@ export async function submitOrder({
         name: item.name,
         quantity: 1,
         variants: item.selectedVariants.map((v) => v.optionName),
+        unit_price_cents: item.price_cents,
       })
     }
   }
   const items = Array.from(map.values())
+  const total_cents = items.reduce((sum, i) => sum + i.quantity * i.unit_price_cents, 0)
 
   const { error: insertError } = await adminClient
     .from('orders')
@@ -83,6 +85,7 @@ export async function submitOrder({
       restaurant_id: restaurant.id,
       table_id: table.id,
       items,
+      total_cents,
       is_handled: false,
     })
 

@@ -8,7 +8,8 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
     id: 'o-1',
     restaurant_id: 'r-1',
     table_id: 't-1',
-    items: [{ name: 'Burger', quantity: 1, variants: [] }],
+    items: [{ name: 'Burger', quantity: 1, variants: [], unit_price_cents: 0 }],
+    total_cents: 0,
     submitted_at: new Date(Date.now() - 30_000).toISOString(),
     is_handled: false,
     handled_at: null,
@@ -17,7 +18,7 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
 }
 
 function items(...names: string[]): OrderItem[] {
-  return names.map((n) => ({ name: n, quantity: 1, variants: [] }))
+  return names.map((n) => ({ name: n, quantity: 1, variants: [], unit_price_cents: 0 }))
 }
 
 afterEach(() => cleanup())
@@ -116,7 +117,7 @@ describe('OrderCard', () => {
 
   it('tapping the row expand button toggles inline expanded view', () => {
     const order = makeOrder({
-      items: [{ name: 'Burger', quantity: 2, variants: ['No pickles'] }],
+      items: [{ name: 'Burger', quantity: 2, variants: ['No pickles'], unit_price_cents: 0 }],
     })
     render(<OrderCard order={order} tableNumber={1} />)
     // Expanded view is not visible initially
@@ -142,7 +143,7 @@ describe('OrderCard', () => {
 
   it('expanded view shows no prices', () => {
     const order = makeOrder({
-      items: [{ name: 'Steak', quantity: 1, variants: ['Medium-rare'] }],
+      items: [{ name: 'Steak', quantity: 1, variants: ['Medium-rare'], unit_price_cents: 0 }],
     })
     render(<OrderCard order={order} tableNumber={1} />)
     fireEvent.click(screen.getByLabelText(/Order for Table 1/))

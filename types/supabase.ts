@@ -45,31 +45,43 @@ export type Database = {
       }
       menu_items: {
         Row: {
+          availability_schedule: Json | null
           category_id: string | null
           created_at: string
           description: string | null
+          display_order: number
           id: string
+          image_url: string | null
           name: string
           price_cents: number
           restaurant_id: string
+          variants: Json
         }
         Insert: {
+          availability_schedule?: Json | null
           category_id?: string | null
           created_at?: string
           description?: string | null
+          display_order?: number
           id?: string
+          image_url?: string | null
           name: string
           price_cents?: number
           restaurant_id: string
+          variants?: Json
         }
         Update: {
+          availability_schedule?: Json | null
           category_id?: string | null
           created_at?: string
           description?: string | null
+          display_order?: number
           id?: string
+          image_url?: string | null
           name?: string
           price_cents?: number
           restaurant_id?: string
+          variants?: Json
         }
         Relationships: [
           {
@@ -97,6 +109,7 @@ export type Database = {
           restaurant_id: string
           submitted_at: string
           table_id: string
+          total_cents: number
         }
         Insert: {
           handled_at?: string | null
@@ -106,6 +119,7 @@ export type Database = {
           restaurant_id: string
           submitted_at?: string
           table_id: string
+          total_cents?: number
         }
         Update: {
           handled_at?: string | null
@@ -115,6 +129,7 @@ export type Database = {
           restaurant_id?: string
           submitted_at?: string
           table_id?: string
+          total_cents?: number
         }
         Relationships: [
           {
@@ -162,6 +177,8 @@ export type Database = {
       restaurants: {
         Row: {
           created_at: string
+          has_previewed_menu: boolean
+          has_printed_qr: boolean
           id: string
           is_published: boolean
           name: string
@@ -169,6 +186,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          has_previewed_menu?: boolean
+          has_printed_qr?: boolean
           id?: string
           is_published?: boolean
           name: string
@@ -176,6 +195,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          has_previewed_menu?: boolean
+          has_printed_qr?: boolean
           id?: string
           is_published?: boolean
           name?: string
@@ -219,6 +240,10 @@ export type Database = {
     Functions: {
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       get_my_restaurant_id: { Args: never; Returns: string }
+      get_restaurant_analytics: {
+        Args: { p_end: string; p_restaurant_id: string; p_start: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

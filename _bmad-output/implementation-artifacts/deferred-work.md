@@ -184,3 +184,27 @@
 - `LandingNav` uses `sticky top-0 z-10` — same z-index as `CategoryTabs` and `MenuPreview` on the customer/admin surfaces. Not a problem today (the marketing nav lives only at `/`), but lock the relative ordering if any shared overlay layer is introduced. [components/marketing/LandingNav.tsx]
 - `getClaims()` returning `{ data: null, error }` is treated as unauthenticated (silent fallback). Matches the I/O Matrix but does not distinguish "session expired" from "Supabase outage" — both render the landing. Consider exposing a transient "auth temporarily unavailable" hint if outage frequency becomes a UX concern. [app/page.tsx]
 - `tailwind.config.ts` defines `accent: "#FF6B35"` and `error: "#FF3B30"` as raw hex literals (pre-existing) rather than CSS-var-backed tokens like the rest of the design system. Convert to CSS vars on a future theming pass. [tailwind.config.ts]
+
+## Deferred from: code review of story-7.1 (2026-05-20)
+
+- Restaurant-local timezone support for analytics period boundaries — MVP-deferred per Story 7.1 spec Dev Notes. Owners in non-UTC zones see slightly drifted "today" / per-day buckets.
+- First-day bucket asymmetry in rolling 7d/30d/90d windows — `periodStart = now − Nd` produces a partial-day first bucket. Acknowledged trade-off ("directionally correct").
+- Race between TS-side `periodEnd` (captured at helper entry) and SQL function's execution time — orders submitted mid-RPC fall outside the window. Inherent to instant-now semantics.
+- `submitOrder` `getEffectivePrice` semantics with multi-group variants — pre-existing logic returns the first matched group's option price; persisted `unit_price_cents` inherits any inconsistency. Pre-existing, not caused by Story 7.1.
+- `submitOrder` `total_cents` overflow risk for very large catering-style carts — column is `integer` (max ~$21.4M). No graceful split-order path.
+- Migration backfill `total_cents` from existing orders' `items × unit_price_cents` — skipped; dev/staging orders show $0 revenue per spec acceptance.
+- AC #3 performance test (`<1000ms` over 10k rows) is `test.describe.skip`-by-default — spec explicitly authorizes manual-only validation; index half of AC #3 is verifiable. [tests/rls/analytics.spec.ts]
+- `cleanupTestRestaurants` doesn't assert that orders were actually deleted — test-helper concern, not Story 7.1's. [tests/rls/helpers.ts]
+- Helper does not categorize Supabase error codes (auth `PGRST301` vs schema `PGRST202` vs RLS `42501`) — all collapse into the same emptyState; ops triage friction. [lib/analytics/getRestaurantAnalytics.ts]
+- `if (!data)` over-broad in the helper — would emptyState on `0`/`false`/`""` if the SQL function ever returns a JSON scalar. Latent foot-gun, not current bug. [lib/analytics/getRestaurantAnalytics.ts:84]
+- No `ANALYZE public.orders` after migration — autovacuum handles planner stats; new composite index may take a beat to be preferred under load.
+- Variant label collision: a future restaurant defining an option literally named `"standard"` would merge with the synthetic empty-variant bucket. Unlikely real-world conflict.
+- `OrderItem.unit_price_cents` and `Order.total_cents` are typed as required `number` while historical rows have `0`/missing values — acknowledged "forward shape" per spec Dev Notes. Any code reading historical rows needs a runtime guard. [types/app.ts]
+- Migration creates `idx_orders_restaurant_submitted_at` without `CONCURRENTLY` — acceptable MVP given small `orders` table. [supabase/migrations/20260520100000_add_orders_total_cents_and_analytics_index.sql]
+- Negative `unit_price_cents` not blocked at the action layer — cart is sourced from `menu_items` with CHECK constraints; defense-in-depth gap only. [actions/orderActions.ts]
+- No DB-level CHECK invariant `total_cents == sum(items[i].quantity × unit_price_cents)` — defense-in-depth not in spec; can drift on direct service-role insert.
+- No explicit `period: '90d'` unit test — coverage gap; `AnalyticsPeriod` union narrows to four periods so the ternary fall-through is type-safe. [tests/unit/lib/analytics/getRestaurantAnalytics.test.ts]
+- RLS test doesn't seed historical-shape (no `unit_price_cents`) orders to verify the `coalesce` safety claim from AC #6 — coverage gap. [tests/rls/analytics.spec.ts]
+- RLS test doesn't assert `top_items.variants` shape including the `"standard"` fallback — coverage gap. [tests/rls/analytics.spec.ts]
+- Performance test uses `Math.random()` for `submitted_at` spread — nondeterministic. Doesn't exercise narrow-window index scans. [tests/rls/analytics.spec.ts:151]
+- Test mock `from()` returns `undefined` for unknown tables — brittle to refactors. [tests/unit/actions/orderActions.test.ts:28-49]

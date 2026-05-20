@@ -107,6 +107,7 @@ export interface OrderItem {
   name: string
   quantity: number
   variants: string[]
+  unit_price_cents: number
 }
 
 export interface Order {
@@ -117,4 +118,40 @@ export interface Order {
   submitted_at: string
   is_handled: boolean
   handled_at: string | null
+  total_cents: number
+}
+
+export type AnalyticsPeriod = 'today' | '7d' | '30d' | '90d'
+
+export interface OrdersByDay {
+  day: string          // ISO date "YYYY-MM-DD" (UTC)
+  count: number
+  revenueCents: number
+}
+
+export interface OrdersByDowHour {
+  dow: number          // 0–6, Sun=0 (UTC)
+  hour: number         // 0–23 (UTC)
+  count: number
+}
+
+export interface TopItem {
+  name: string
+  quantity: number
+  revenueCents: number
+  variants: Record<string, number>  // variant-label -> count
+}
+
+export interface AnalyticsData {
+  period: AnalyticsPeriod
+  periodStart: string            // ISO
+  periodEnd: string              // ISO
+  orderCount: number
+  totalRevenueCents: number
+  averageOrderValueCents: number // 0 when orderCount === 0
+  ordersByDay: OrdersByDay[]
+  ordersByDowHour: OrdersByDowHour[]
+  topItems: TopItem[]
+  emptyState: boolean            // true when orderCount < 30 OR error occurred
+  error?: boolean                // true when RPC failed — distinguishes outage from "no data"
 }
