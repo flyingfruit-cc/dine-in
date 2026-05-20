@@ -213,3 +213,9 @@
 
 - Profile-fetch error redirects to `/auth/onboarding` instead of surfacing the DB error — pre-existing, same pattern as `app/admin/orders/page.tsx`. Fix would require auditing all admin page profile-fetch sites. [app/admin/analytics/page.tsx, app/admin/orders/page.tsx]
 - Mobile bottom-bar may clip "Analytics" label at 360px width with 7 items (6 tabs + sign out) — story explicitly says do not redesign nav here; flag for a future UI polish story. [components/admin/AdminNav.tsx]
+
+## Deferred from: code review of 7-3-popular-items-revenue-summary (2026-05-20)
+
+- KPI value spans have redundant aria-labels that cause screen readers to double-announce ("Total Revenue. Total Revenue: $50.00"). Spec Task 1 line 67 explicitly mandates the per-value `aria-label="<label>: <value>"`. Flag for spec author review (drop aria-label on the value span OR mark the label span `aria-hidden="true"`). [components/admin/AnalyticsRevenueSummary.tsx:24-46]
+- E2E "renders OR empty-state OR error" assertion is tautological — passes as long as any of the three branches appears; new tests add no incremental coverage in the data-positive case. Matches the established 7.2 pattern; revisit project-wide. [tests/e2e/admin-analytics.spec.ts:79-110]
+- Variant labels containing `" / "` corrupt the joined breakdown string (e.g. `"salt / pepper"` → `salt / pepper: 7 / standard: 12`, visually unparseable). Spec mandates ` / ` as the separator. Address either by sanitizing variant labels at the data layer or by picking a more robust separator. [components/admin/AnalyticsPopularItemRow.tsx:24]

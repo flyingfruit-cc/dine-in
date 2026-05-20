@@ -76,6 +76,40 @@ test.describe('Admin analytics page', () => {
     expect(hasEmptyState || hasChart || hasError).toBe(true)
   })
 
+  test('Revenue Summary KPI labels render OR empty-state shows (no crash)', async ({ page }) => {
+    await signIn(page)
+    await page.goto('/admin/analytics')
+    // When data is available (emptyState=false), Revenue Summary shows three KPI labels
+    const hasRevenueSummary = await page.getByText('Total Revenue').isVisible().catch(() => false)
+    const hasEmptyState = await page
+      .getByRole('heading', { name: /Not enough data yet/i })
+      .isVisible()
+      .catch(() => false)
+    const hasError = await page
+      .getByRole('heading', { name: /Analytics temporarily unavailable/i })
+      .isVisible()
+      .catch(() => false)
+    expect(hasRevenueSummary || hasEmptyState || hasError).toBe(true)
+  })
+
+  test('Popular Items section renders OR empty-state shows (no crash)', async ({ page }) => {
+    await signIn(page)
+    await page.goto('/admin/analytics')
+    const hasPopularItems = await page
+      .getByRole('heading', { name: 'Popular Items' })
+      .isVisible()
+      .catch(() => false)
+    const hasEmptyState = await page
+      .getByRole('heading', { name: /Not enough data yet/i })
+      .isVisible()
+      .catch(() => false)
+    const hasError = await page
+      .getByRole('heading', { name: /Analytics temporarily unavailable/i })
+      .isVisible()
+      .catch(() => false)
+    expect(hasPopularItems || hasEmptyState || hasError).toBe(true)
+  })
+
   test('AdminNav shows Analytics entry that navigates to /admin/analytics', async ({ page }) => {
     await signIn(page)
     await page.goto('/admin')

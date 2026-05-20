@@ -15,6 +15,18 @@ export default function AnalyticsLoading() {
           ))}
         </div>
 
+        {/* Revenue Summary tile: 3 KPI skeletons */}
+        <div className="mt-6 rounded-lg border border-border bg-surface-raised px-4 py-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex flex-1 flex-col gap-2">
+                <div className="h-3 w-20 animate-pulse rounded bg-surface-overlay" />
+                <div className="h-7 w-24 animate-pulse rounded bg-surface-overlay" />
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Order Volume chart: title + chart area */}
         <div className="mt-6">
           <div className="mb-3 h-4 w-28 animate-pulse rounded bg-surface-overlay" />
@@ -37,6 +49,25 @@ export default function AnalyticsLoading() {
             ))}
           </div>
           <div className="mt-2 h-3 w-32 animate-pulse rounded bg-surface-overlay" />
+        </div>
+
+        {/* Popular Items: title + 10 row skeletons */}
+        <div className="mt-8">
+          <div className="mb-3 h-4 w-24 animate-pulse rounded bg-surface-overlay" />
+          <div className="rounded-lg border border-border bg-surface-raised">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 border-b border-border px-4 py-3 last:border-b-0"
+              >
+                <div className="h-4 w-6 animate-pulse rounded bg-surface-overlay" />
+                <div className="h-4 flex-1 animate-pulse rounded bg-surface-overlay" />
+                <div className="h-4 w-10 animate-pulse rounded bg-surface-overlay" />
+                <div className="h-4 w-16 animate-pulse rounded bg-surface-overlay" />
+                <div className="h-4 w-4 animate-pulse rounded bg-surface-overlay" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </main>

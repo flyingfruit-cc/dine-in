@@ -6,6 +6,8 @@ import { AnalyticsOrderVolumeChart } from '@/components/admin/AnalyticsOrderVolu
 import { AnalyticsPeakHoursHeatmap } from '@/components/admin/AnalyticsPeakHoursHeatmap'
 import { AnalyticsEmptyState } from '@/components/admin/AnalyticsEmptyState'
 import { AnalyticsErrorPanel } from '@/components/admin/AnalyticsErrorPanel'
+import { AnalyticsRevenueSummary } from '@/components/admin/AnalyticsRevenueSummary'
+import { AnalyticsPopularItems } from '@/components/admin/AnalyticsPopularItems'
 import type { AnalyticsPeriod } from '@/types/app'
 
 const VALID_PERIODS = ['today', '7d', '30d', '90d'] as const
@@ -58,9 +60,19 @@ export default async function AdminAnalyticsPage({
             <AnalyticsEmptyState orderCount={data.orderCount} />
           ) : (
             <>
-              <AnalyticsOrderVolumeChart data={data.ordersByDay} />
+              <AnalyticsRevenueSummary
+                totalRevenueCents={data.totalRevenueCents}
+                averageOrderValueCents={data.averageOrderValueCents}
+                orderCount={data.orderCount}
+              />
+              <div className="mt-6">
+                <AnalyticsOrderVolumeChart data={data.ordersByDay} />
+              </div>
               <div className="mt-8">
                 <AnalyticsPeakHoursHeatmap data={data.ordersByDowHour} />
+              </div>
+              <div className="mt-8">
+                <AnalyticsPopularItems items={data.topItems} />
               </div>
             </>
           )}
