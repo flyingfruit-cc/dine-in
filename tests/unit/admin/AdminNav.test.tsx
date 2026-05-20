@@ -34,7 +34,7 @@ describe('AdminNav', () => {
     })
   })
 
-  it('navigation order in mobile bar: Dashboard, Orders, Menu, Tables, Analytics, Settings', () => {
+  it('navigation order in mobile bar: Dashboard, Orders, Menu, Tables, Analytics, Settings (no Kitchen)', () => {
     render(<AdminNav />)
     // Mobile nav is `<nav aria-label="Admin navigation" class="...lg:hidden">`
     const mobileNav = screen.getAllByRole('navigation', { name: 'Admin navigation' })[0]
@@ -44,7 +44,7 @@ describe('AdminNav', () => {
     expect(labels).toEqual(['Dashboard', 'Orders', 'Menu', 'Tables', 'Analytics', 'Settings'])
   })
 
-  it('navigation order in desktop sidebar: Dashboard, Orders, Menu, Tables, Analytics, Settings', () => {
+  it('navigation order in desktop sidebar: Dashboard, Orders, Menu, Tables, Analytics, Settings, Kitchen', () => {
     render(<AdminNav />)
     // Desktop nav is the second `<nav aria-label="Admin navigation">`
     const desktopNav = screen.getAllByRole('navigation', { name: 'Admin navigation' })[1]
@@ -52,6 +52,14 @@ describe('AdminNav', () => {
       .map((l) => l.textContent?.trim())
       .filter(Boolean)
     // Desktop sidebar has the extra "dine-in" branding link first; tabs follow
-    expect(labels).toEqual(['dine-in', 'Dashboard', 'Orders', 'Menu', 'Tables', 'Analytics', 'Settings'])
+    expect(labels).toEqual(['dine-in', 'Dashboard', 'Orders', 'Menu', 'Tables', 'Analytics', 'Settings', 'Kitchen'])
+  })
+
+  it('Kitchen entry is present only on desktop sidebar, not mobile bottom bar', () => {
+    render(<AdminNav />)
+    const mobileNav = screen.getAllByRole('navigation', { name: 'Admin navigation' })[0]
+    const desktopNav = screen.getAllByRole('navigation', { name: 'Admin navigation' })[1]
+    expect(mobileNav.querySelector('a[href="/admin/kds"]')).toBeNull()
+    expect(desktopNav.querySelector('a[href="/admin/kds"]')).toBeTruthy()
   })
 })

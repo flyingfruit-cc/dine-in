@@ -2,16 +2,26 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Receipt, UtensilsCrossed, QrCode, BarChart3, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, Receipt, UtensilsCrossed, QrCode, BarChart3, Settings, LogOut, ChefHat } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
-const tabs = [
+interface Tab {
+  href: string
+  label: string
+  icon: LucideIcon
+  exact: boolean
+  desktopOnly?: boolean
+}
+
+const tabs: Tab[] = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { href: '/admin/orders', label: 'Orders', icon: Receipt, exact: false },
   { href: '/admin/menu', label: 'Menu', icon: UtensilsCrossed, exact: false },
   { href: '/admin/tables', label: 'Tables', icon: QrCode, exact: false },
   { href: '/admin/analytics', label: 'Analytics', icon: BarChart3, exact: false },
   { href: '/admin/settings', label: 'Settings', icon: Settings, exact: false },
+  { href: '/admin/kds', label: 'Kitchen', icon: ChefHat, exact: false, desktopOnly: true },
 ]
 
 export function AdminNav() {
@@ -37,7 +47,7 @@ export function AdminNav() {
         aria-label="Admin navigation"
       >
         <div className="flex">
-          {tabs.map(({ href, label, icon: Icon, exact }) => {
+          {tabs.filter((t) => !t.desktopOnly).map(({ href, label, icon: Icon, exact }) => {
             const active = isActive(href, exact)
             return (
               <Link

@@ -1,13 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { AdminShell } from '@/components/admin/AdminShell'
-import { RealtimeProvider } from '@/components/shared/RealtimeProvider'
+import { KdsScreen } from '@/components/admin/KdsScreen'
 
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export const metadata = {
+  title: 'Kitchen — dine-in',
+}
+
+export default async function AdminKdsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
@@ -20,9 +19,5 @@ export default async function AdminLayout({
 
   if (!profile?.restaurant_id) redirect('/auth/onboarding')
 
-  return (
-    <RealtimeProvider restaurantId={profile.restaurant_id}>
-      <AdminShell>{children}</AdminShell>
-    </RealtimeProvider>
-  )
+  return <KdsScreen />
 }

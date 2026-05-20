@@ -219,3 +219,14 @@
 - KPI value spans have redundant aria-labels that cause screen readers to double-announce ("Total Revenue. Total Revenue: $50.00"). Spec Task 1 line 67 explicitly mandates the per-value `aria-label="<label>: <value>"`. Flag for spec author review (drop aria-label on the value span OR mark the label span `aria-hidden="true"`). [components/admin/AnalyticsRevenueSummary.tsx:24-46]
 - E2E "renders OR empty-state OR error" assertion is tautological — passes as long as any of the three branches appears; new tests add no incremental coverage in the data-positive case. Matches the established 7.2 pattern; revisit project-wide. [tests/e2e/admin-analytics.spec.ts:79-110]
 - Variant labels containing `" / "` corrupt the joined breakdown string (e.g. `"salt / pepper"` → `salt / pepper: 7 / standard: 12`, visually unparseable). Spec mandates ` / ` as the separator. Address either by sanitizing variant labels at the data layer or by picking a more robust separator. [components/admin/AnalyticsPopularItemRow.tsx:24]
+
+## Deferred from: code review of 8-1-kds-route-tablet-optimized-layout (2026-05-20)
+
+- Placeholder cards render raw `table_id` UUID — explicitly Story 8.2 territory; the tables lookup happens there. [components/admin/KdsScreen.tsx:62]
+- `formatRelativeTime` not auto-refreshed every 30s — Story 8.2 ACs explicitly require this; implement there. [components/admin/KdsScreen.tsx:59]
+- `isRealtimeReady === false` on mount is indistinguishable from real empty-state — UX could show a "Connecting..." state during the first hydration window. [components/admin/KdsScreen.tsx:8]
+- No `aria-live` region announcing new orders on the KDS — kitchen wallscreens rarely have SRs, but a broader a11y pass should add it. [components/admin/KdsScreen.tsx:30-54]
+- Unit-test gap: `cancelled` guard in the wake-lock cleanup is not explicitly verified (no test asserts "no re-acquire after unmount when visibilitychange fires"). [tests/unit/admin/KdsScreen.test.tsx]
+- `AdminNav.isActive(href, false)` uses `pathname.startsWith(href)` which over-matches similar-prefix routes (e.g. Kitchen tab would highlight on `/admin/kds-summary`). Pre-existing; affects every nav tab. Cross-cutting fix needed. [components/admin/AdminNav.tsx:31-33]
+- Loading skeleton has no `role="status"` / `aria-busy` / `aria-live` — same pattern across every admin loading.tsx; cross-cutting a11y enhancement. [app/admin/kds/loading.tsx]
+- `profiles.single()` PGRST116 path not explicitly handled — pre-existing pattern; same omission in every `/admin/*` page. Cross-cutting fix. [app/admin/kds/page.tsx:11-19]
