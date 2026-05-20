@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Receipt, UtensilsCrossed, QrCode, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, Receipt, UtensilsCrossed, QrCode, BarChart3, Settings, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 const tabs = [
@@ -10,6 +10,7 @@ const tabs = [
   { href: '/admin/orders', label: 'Orders', icon: Receipt, exact: false },
   { href: '/admin/menu', label: 'Menu', icon: UtensilsCrossed, exact: false },
   { href: '/admin/tables', label: 'Tables', icon: QrCode, exact: false },
+  { href: '/admin/analytics', label: 'Analytics', icon: BarChart3, exact: false },
   { href: '/admin/settings', label: 'Settings', icon: Settings, exact: false },
 ]
 

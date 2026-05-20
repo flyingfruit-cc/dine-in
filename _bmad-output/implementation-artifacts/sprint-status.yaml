@@ -36,7 +36,7 @@
 
 generated: 2026-05-09
 last_updated: 2026-05-20
-last_event: Story 7.1 code review complete — all 13 patches applied; status done
+last_event: Story 7.2 done (code review patches applied)
 project: dine-in-cc
 project_key: NOKEY
 tracking_system: file-system
@@ -93,7 +93,7 @@ development_status:
   # Epic 7: Owner Analytics Dashboard (Post-MVP — Phase 2)
   epic-7: in-progress
   7-1-analytics-data-aggregation-layer: done
-  7-2-order-volume-peak-hours-visualization: backlog
+  7-2-order-volume-peak-hours-visualization: done
   7-3-popular-items-revenue-summary: backlog
   epic-7-retrospective: optional
 

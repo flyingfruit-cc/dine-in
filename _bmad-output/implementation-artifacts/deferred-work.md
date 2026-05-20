@@ -208,3 +208,8 @@
 - RLS test doesn't assert `top_items.variants` shape including the `"standard"` fallback — coverage gap. [tests/rls/analytics.spec.ts]
 - Performance test uses `Math.random()` for `submitted_at` spread — nondeterministic. Doesn't exercise narrow-window index scans. [tests/rls/analytics.spec.ts:151]
 - Test mock `from()` returns `undefined` for unknown tables — brittle to refactors. [tests/unit/actions/orderActions.test.ts:28-49]
+
+## Deferred from: code review of 7-2-order-volume-peak-hours-visualization (2026-05-20)
+
+- Profile-fetch error redirects to `/auth/onboarding` instead of surfacing the DB error — pre-existing, same pattern as `app/admin/orders/page.tsx`. Fix would require auditing all admin page profile-fetch sites. [app/admin/analytics/page.tsx, app/admin/orders/page.tsx]
+- Mobile bottom-bar may clip "Analytics" label at 360px width with 7 items (6 tabs + sign out) — story explicitly says do not redesign nav here; flag for a future UI polish story. [components/admin/AdminNav.tsx]

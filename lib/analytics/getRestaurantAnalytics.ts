@@ -25,6 +25,37 @@ function periodToRange(period: AnalyticsPeriod): { periodStart: string; periodEn
   return { periodStart: start.toISOString(), periodEnd }
 }
 
+// Pads `ordersByDay` so every UTC date in [periodStart, periodEnd] has a bucket.
+// SQL `GROUP BY date_trunc(day)` only emits rows for days with orders; AC #1 requires
+// one bar per day in the period — missing days must show as zero-count.
+function padDays(
+  buckets: OrdersByDay[],
+  periodStart: string,
+  periodEnd: string,
+): OrdersByDay[] {
+  const byDay = new Map(buckets.map((b) => [b.day, b]))
+
+  const startMs = Date.UTC(
+    Number(periodStart.slice(0, 4)),
+    Number(periodStart.slice(5, 7)) - 1,
+    Number(periodStart.slice(8, 10)),
+  )
+  const endMs = Date.UTC(
+    Number(periodEnd.slice(0, 4)),
+    Number(periodEnd.slice(5, 7)) - 1,
+    Number(periodEnd.slice(8, 10)),
+  )
+
+  const out: OrdersByDay[] = []
+  const DAY_MS = 24 * 60 * 60 * 1000
+  for (let ms = startMs; ms <= endMs; ms += DAY_MS) {
+    const d = new Date(ms)
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
+    out.push(byDay.get(key) ?? { day: key, count: 0, revenueCents: 0 })
+  }
+  return out
+}
+
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function emptyResult(
@@ -109,13 +140,18 @@ export async function getRestaurantAnalytics(
   const emptyState = orderCount < 30
 
   // AC #2: when emptyState=true the aggregate arrays must not show sparse/misleading buckets
+  // AC #1: when emptyState=false, every day in [periodStart, periodEnd] must appear (zero-fill gaps)
   const ordersByDay: OrdersByDay[] = emptyState
     ? []
-    : (raw.orders_by_day ?? []).map((r) => ({
-        day: r.day,
-        count: r.count,
-        revenueCents: r.revenue_cents,
-      }))
+    : padDays(
+        (raw.orders_by_day ?? []).map((r) => ({
+          day: r.day,
+          count: r.count,
+          revenueCents: r.revenue_cents,
+        })),
+        periodStart,
+        periodEnd,
+      )
 
   const ordersByDowHour: OrdersByDowHour[] = emptyState
     ? []

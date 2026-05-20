@@ -139,11 +139,12 @@ describe('getRestaurantAnalytics', () => {
     consoleSpy.mockRestore()
   })
 
-  it('normalises jsonb data into typed AnalyticsData', async () => {
+  it('normalises jsonb data into typed AnalyticsData (with zero-fill padding for missing days)', async () => {
+    // FIXED_NOW = 2026-06-01T12:34:56Z → 30d window = 2026-05-02 .. 2026-06-01 (31 days inclusive)
     const raw = makeRawAnalytics({
       order_count: 50,
       total_revenue_cents: 100000,
-      orders_by_day: [{ day: '2026-05-01', count: 10, revenue_cents: 20000 }],
+      orders_by_day: [{ day: '2026-05-15', count: 10, revenue_cents: 20000 }],
       orders_by_dow_hour: [{ dow: 1, hour: 12, count: 5 }],
       top_items: [{ name: 'Pizza', quantity: 30, revenue_cents: 60000, variants: { standard: 30 } }],
     })
@@ -153,10 +154,48 @@ describe('getRestaurantAnalytics', () => {
     expect(result.period).toBe('30d')
     expect(result.orderCount).toBe(50)
     expect(result.averageOrderValueCents).toBe(2000) // Math.round(100000 / 50)
-    expect(result.ordersByDay).toEqual([{ day: '2026-05-01', count: 10, revenueCents: 20000 }])
+
+    // AC #1: zero-fill missing days
+    expect(result.ordersByDay).toHaveLength(31)
+    expect(result.ordersByDay[0]).toEqual({ day: '2026-05-02', count: 0, revenueCents: 0 })
+    expect(result.ordersByDay[result.ordersByDay.length - 1]).toEqual({
+      day: '2026-06-01',
+      count: 0,
+      revenueCents: 0,
+    })
+    const seeded = result.ordersByDay.find((d) => d.day === '2026-05-15')
+    expect(seeded).toEqual({ day: '2026-05-15', count: 10, revenueCents: 20000 })
+
     expect(result.ordersByDowHour).toEqual([{ dow: 1, hour: 12, count: 5 }])
     expect(result.topItems).toEqual([{ name: 'Pizza', quantity: 30, revenueCents: 60000, variants: { standard: 30 } }])
     expect(result.emptyState).toBe(false) // 50 >= 30
+  })
+
+  it('zero-fills today as a single bucket', async () => {
+    const raw = makeRawAnalytics({
+      order_count: 30, // boundary — emptyState=false
+      total_revenue_cents: 30000,
+      orders_by_day: [{ day: '2026-06-01', count: 30, revenue_cents: 30000 }],
+    })
+    const supabase = makeSupabaseMock({ data: raw, error: null })
+    const result = await getRestaurantAnalytics(supabase as never, RESTAURANT_ID, 'today')
+    expect(result.ordersByDay).toEqual([{ day: '2026-06-01', count: 30, revenueCents: 30000 }])
+  })
+
+  it('zero-fills entire 7d window when no orders fall on any day', async () => {
+    const raw = makeRawAnalytics({
+      order_count: 30,
+      total_revenue_cents: 30000,
+      orders_by_day: [{ day: '2026-06-01', count: 30, revenue_cents: 30000 }],
+    })
+    const supabase = makeSupabaseMock({ data: raw, error: null })
+    const result = await getRestaurantAnalytics(supabase as never, RESTAURANT_ID, '7d')
+    // 7d window = 2026-05-25 .. 2026-06-01 → 8 day buckets (start + end inclusive)
+    expect(result.ordersByDay.length).toBeGreaterThanOrEqual(7)
+    expect(result.ordersByDay.length).toBeLessThanOrEqual(8)
+    expect(result.ordersByDay.every((d) => d.count >= 0)).toBe(true)
+    // Every bucket must have a `day` in YYYY-MM-DD shape
+    expect(result.ordersByDay.every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d.day))).toBe(true)
   })
 
   it('averageOrderValueCents is 0 (not NaN) when orderCount=0', async () => {
