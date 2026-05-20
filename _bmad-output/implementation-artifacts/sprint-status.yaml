@@ -35,8 +35,8 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-09
-last_updated: 2026-05-18
-last_event: 6-2-tenant-account-inspection-data-access done (post code-review)
+last_updated: 2026-05-20
+last_event: Post-MVP epics 7-10 reordered (Epic 7 ↔ Epic 9 swap: Analytics now Epic 7, Status Tracking now Epic 9)
 project: dine-in-cc
 project_key: NOKEY
 tracking_system: file-system
@@ -88,3 +88,30 @@ development_status:
   6-1-platform-admin-access-tenant-list: done
   6-2-tenant-account-inspection-data-access: done
   epic-6-retrospective: optional
+
+  # Epic 7: Owner Analytics Dashboard (Post-MVP — Phase 2)
+  epic-7: backlog
+  7-1-analytics-data-aggregation-layer: backlog
+  7-2-order-volume-peak-hours-visualization: backlog
+  7-3-popular-items-revenue-summary: backlog
+  epic-7-retrospective: optional
+
+  # Epic 8: Kitchen Display Screen (KDS) (Post-MVP — Phase 2)
+  epic-8: backlog
+  8-1-kds-route-tablet-optimized-layout: backlog
+  8-2-order-tickets-sequence-priority-signals: backlog
+  8-3-bump-to-complete-workflow-with-undo: backlog
+  epic-8-retrospective: optional
+
+  # Epic 9: Customer Order Status Tracking (Post-MVP — Phase 2)
+  epic-9: backlog
+  9-1-order-status-data-model-server-action: backlog
+  9-2-admin-ui-inline-status-controls: backlog
+  9-3-customer-order-tracking-confirmation-screen: backlog
+  epic-9-retrospective: optional
+
+  # Epic 10: Multi-Language Menus (Post-MVP — Phase 2)
+  epic-10: backlog
+  10-1-translation-data-model-owner-editor: backlog
+  10-2-customer-language-selection-rendering: backlog
+  epic-10-retrospective: optional

@@ -4,6 +4,12 @@ inputDocuments:
   - _bmad-output/planning-artifacts/prd.md
   - _bmad-output/planning-artifacts/architecture.md
   - _bmad-output/planning-artifacts/ux-design-specification.md
+lastUpdated: '2026-05-20'
+postMvpExtension:
+  date: '2026-05-20'
+  added: ['Epic 7: Owner Analytics Dashboard', 'Epic 8: Kitchen Display Screen (KDS)', 'Epic 9: Customer Order Status Tracking', 'Epic 10: Multi-Language Menus']
+  skipped: ['Staff sub-accounts', 'Payment integration']
+  status: 'backlog'
 ---
 
 # dine-in-cc - Epic Breakdown
@@ -58,6 +64,21 @@ FR39: System issues an anonymous session token to customers on QR scan that expi
 FR40: Platform admin can view a list of all registered restaurant tenants
 FR41: Platform admin can inspect the account and configuration details of any tenant
 FR42: Platform admin can access any tenant's data for support purposes
+FR43: Restaurant owner can view their restaurant name and URL slug from the Admin Settings page
+FR44: Restaurant owner can update their restaurant name from the Admin Settings page (slug is immutable after creation)
+FR45: Restaurant owner can view order volume per day, week, and month *(Post-MVP — Epic 7)*
+FR46: Restaurant owner can view peak ordering hours as a day × hour heatmap *(Post-MVP — Epic 7)*
+FR47: Restaurant owner can view top-N popular menu items by order count and revenue *(Post-MVP — Epic 7)*
+FR48: Restaurant owner can view revenue summary per period (day/week/month) *(Post-MVP — Epic 7)*
+FR49: Kitchen staff can view a dedicated order queue (Kitchen Display Screen) at `/admin/kds` *(Post-MVP — Epic 8)*
+FR50: KDS displays orders in submission order with visual prep priorities (elapsed time, warning state) *(Post-MVP — Epic 8)*
+FR51: Kitchen staff can bump an order from the KDS to advance it to `ready` *(Post-MVP — Epic 8)*
+FR52: Restaurant owner can advance an order through statuses: received → preparing → ready → completed *(Post-MVP — Epic 9)*
+FR53: Customer can view the live status of their submitted order from the confirmation screen *(Post-MVP — Epic 9)*
+FR54: Status updates appear in the customer's view within 5 seconds of owner action *(Post-MVP — Epic 9)*
+FR55: Restaurant owner can define translations for item name and description per supported language *(Post-MVP — Epic 10)*
+FR56: Customer's preferred language is auto-detected from `Accept-Language` header on QR scan *(Post-MVP — Epic 10)*
+FR57: Customer can switch language on the menu page; selection persists for the session *(Post-MVP — Epic 10)*
 
 ### NonFunctional Requirements
 
@@ -163,6 +184,21 @@ FR39: Epic 1 — Anonymous session token issued on QR scan, 2-hour expiry
 FR40: Epic 6 — Platform admin views all tenant restaurants
 FR41: Epic 6 — Platform admin inspects tenant account/config
 FR42: Epic 6 — Platform admin accesses tenant data for support
+FR43: Epic 1 (Story 1.5) — Owner views restaurant name and URL slug
+FR44: Epic 1 (Story 1.5) — Owner updates restaurant name (slug immutable)
+FR45: Epic 7 — Owner views order volume per day/week/month
+FR46: Epic 7 — Owner views peak hours heatmap
+FR47: Epic 7 — Owner views popular items ranking
+FR48: Epic 7 — Owner views revenue summary per period
+FR49: Epic 8 — Kitchen staff view dedicated order queue at `/admin/kds`
+FR50: Epic 8 — KDS displays orders with elapsed-time priority
+FR51: Epic 8 — Kitchen staff bump order to `ready`
+FR52: Epic 9 — Owner advances order status (received → preparing → ready → completed)
+FR53: Epic 9 — Customer views live order status from confirmation screen
+FR54: Epic 9 — Status updates delivered to customer within 5 seconds
+FR55: Epic 10 — Owner defines per-language translations for items
+FR56: Epic 10 — Customer language auto-detected from `Accept-Language`
+FR57: Epic 10 — Customer switches language; selection persists for session
 
 ## Epic List
 
@@ -189,6 +225,26 @@ Restaurant owners receive submitted orders instantly in the Admin UI during live
 ### Epic 6: Platform Administration
 The platform admin can view all registered tenant restaurants, inspect any account's configuration, and access tenant data to resolve support issues.
 **FRs covered:** FR40, FR41, FR42
+
+### Epic 7: Owner Analytics Dashboard *(Post-MVP — Phase 2)*
+Restaurant owners can view operational analytics: order volume, peak hours, popular items, and revenue summaries — enabling data-driven decisions on menu, staffing, and pricing.
+**FRs covered:** FR45, FR46, FR47, FR48
+**Depends on:** Epic 5 (historical orders data)
+
+### Epic 8: Kitchen Display Screen (KDS) *(Post-MVP — Phase 2)*
+Kitchen staff use a dedicated, large-format display showing active orders with sequence and prep priorities. Orders are bumped by kitchen staff when complete.
+**FRs covered:** FR49, FR50, FR51
+**Depends on:** Epic 5, Epic 9 (recommended)
+
+### Epic 9: Customer Order Status Tracking *(Post-MVP — Phase 2)*
+Customers receive real-time order progress (confirmed → preparing → ready) from the confirmation screen. Restaurant owners advance status from the existing order feed.
+**FRs covered:** FR52, FR53, FR54
+**Depends on:** Epic 5 (Real-Time Order Management)
+
+### Epic 10: Multi-Language Menus *(Post-MVP — Phase 2)*
+Restaurant owners publish menu item translations in supported languages. Customers see the menu in their browser's preferred language or switch manually.
+**FRs covered:** FR55, FR56, FR57
+**Depends on:** Epic 2, Epic 4
 
 ---
 
@@ -952,3 +1008,390 @@ So that I can diagnose and resolve support issues without needing the restaurant
 **Given** the platform admin accesses this page
 **When** the data is fetched
 **Then** all queries are scoped to the specific `restaurant_id` — the admin sees one tenant at a time, never a cross-tenant dump
+
+---
+
+## Epic 7: Owner Analytics Dashboard *(Post-MVP — Phase 2)*
+
+**Status:** Backlog
+**Depends on:** Epic 5 (Real-Time Order Management — historical orders data source)
+
+Restaurant owners can see operational analytics in their Admin UI: order volume, peak hours, popular items, and revenue summaries — enabling data-driven decisions on menu, staffing, and pricing.
+
+### Story 7.1: Analytics Data Aggregation Layer
+
+As a developer,
+I want a server-side aggregation layer that computes analytics on demand from the `orders` table,
+So that the analytics page does not run expensive client-side computation and remains responsive at scale.
+
+**Acceptance Criteria:**
+
+**Given** the analytics route is requested
+**When** the page Server Component renders
+**Then** aggregations are computed via a `getRestaurantAnalytics(restaurantId, period)` server helper using Postgres SQL aggregates (`date_trunc`, `count(*)`, `sum`) on `orders` grouped by hour/day — never in-memory JS aggregation
+**And** `items` jsonb is unnested via `jsonb_array_elements` to compute per-item statistics
+
+**Given** an owner has fewer than 30 completed orders for the requested period
+**When** analytics render
+**Then** charts show the empty state: "Not enough data yet — keep serving!" with a target message ("Come back when you have ≥30 orders") — no misleading sparse graphs
+
+**Given** an order-volume query against ≥10,000 rows
+**When** the aggregation runs
+**Then** the query returns within 1 second on typical restaurant data sizes
+**And** an index on `orders (restaurant_id, submitted_at)` exists — added in this story's migration if not already present
+
+**Given** the user is a platform admin viewing a tenant
+**When** they navigate to `/platform/tenants/[restaurant_id]/analytics`
+**Then** the same `getRestaurantAnalytics` helper renders the report — accessed via the admin client per the existing platform admin pattern (Story 6.2)
+
+**Given** a non-owning restaurant owner attempts to query another restaurant's analytics
+**When** the Server Action runs
+**Then** RLS + `restaurant_id` from `get_my_restaurant_id()` blocks access — returns empty aggregates, never another tenant's data (defense in depth)
+
+---
+
+### Story 7.2: Order Volume & Peak Hours Visualization
+
+As a restaurant owner,
+I want to see how many orders I'm handling and when peak hours hit,
+So that I can plan staffing and prep.
+
+**Acceptance Criteria:**
+
+**Given** an authenticated owner navigates to `/admin/analytics`
+**When** the page renders
+**Then** a period selector (Today / 7 days / 30 days / 90 days) appears at the top
+**And** an "Order Volume" chart shows orders per day for the selected period (bar or line, decision deferred to spec time)
+**And** a "Peak Hours" heatmap shows day-of-week (rows) × hour-of-day (cols, only restaurant operating hours), with cell intensity proportional to order count
+
+**Given** an owner switches the period selector
+**When** the new selection is registered
+**Then** charts re-render with the new aggregation — loading skeleton matches the chart layout exactly, no spinners (UX-DR12)
+**And** URL search param `?period=7d` reflects the selection so the view is shareable/bookmarkable
+
+**Given** charting library decision
+**When** the spec for 7.2 is written
+**Then** evaluate `recharts`, native SVG, or `visx` before adding any new dependency — per project-context "Ask First" rule for new deps. Decision must justify edge-runtime / Cloudflare Workers compatibility.
+
+**Given** the analytics page is mounted
+**When** the AdminNav renders on desktop sidebar
+**Then** an "Analytics" entry is added (icon: `BarChart3` from lucide-react) — appears for desktop sidebar AND mobile bottom tab bar
+
+---
+
+### Story 7.3: Popular Items & Revenue Summary
+
+As a restaurant owner,
+I want to know which items sell the most and what total revenue I've generated,
+So that I can refine my menu and price decisions.
+
+**Acceptance Criteria:**
+
+**Given** the analytics page is rendered for the selected period
+**When** the "Popular Items" section displays
+**Then** the top 10 menu items by order count are listed with rank (1–10), item name, order count, total revenue (formatted via `utils/formatPrice.ts`)
+**And** items deleted from the menu after orders were placed still appear in the historical ranking (denormalized name preserved from the `items` jsonb)
+
+**Given** a popular item has variant breakdowns
+**When** the row is tapped
+**Then** the row expands inline to show variant counts (e.g. "Carbonara — without bacon: 12 / standard: 31")
+
+**Given** the period selector value
+**When** the Revenue Summary tile renders
+**Then** it shows total revenue, average order value, and order count — all derived from the same `getRestaurantAnalytics` call as 7.2 (single round-trip per page render)
+
+**Given** revenue calculations
+**When** computing totals
+**Then** all prices are summed as `price_cents` integers — never converted to float mid-aggregation
+**And** display formatting always goes through `formatPrice.ts` — no inline currency rendering
+
+**Given** the data has no orders for the selected period
+**When** the page renders
+**Then** Popular Items shows the empty state "No items sold yet in this period" and Revenue Summary shows "$0 / 0 orders" without `NaN` or division-by-zero artifacts
+
+---
+
+## Epic 8: Kitchen Display Screen (KDS) *(Post-MVP — Phase 2)*
+
+**Status:** Backlog
+**Depends on:** Epic 5 (Real-Time Order Management), Epic 9 (Status Tracking — recommended)
+
+Kitchen staff use a dedicated, large-format display showing active orders with sequence and prep priorities. Orders are bumped by kitchen staff when complete, separately from the front-of-house Admin UI workflow.
+
+### Story 8.1: KDS Route & Tablet-Optimized Layout
+
+As a restaurant owner,
+I want a dedicated kitchen display URL my staff can open on a tablet in the kitchen,
+So that the kitchen has the order queue without sharing my owner Admin UI.
+
+**Acceptance Criteria:**
+
+**Given** an authenticated owner navigates to `/admin/kds`
+**When** the page renders
+**Then** the layout is full-screen, landscape-optimized, with NO admin nav chrome (no left sidebar, no bottom tab bar) — designed for tablet/wall display
+**And** a grid of OrderTickets is shown: 3 columns at ≥1024px, 2 columns below
+
+**Given** the KDS is mounted
+**When** the Realtime subscription connects
+**Then** new orders appear immediately at the top-left of the grid via the existing global `RealtimeProvider` — no separate subscription is created
+**And** polling fallback at 4000ms remains the recovery path (consistent with Story 5.1)
+
+**Given** the KDS is open on a tablet
+**When** the device is idle
+**Then** the screen does not auto-dismiss or sign out — KDS sessions are long-lived; CSS `wake-lock` is applied where supported
+
+**Given** the existing AdminNav
+**When** the KDS link is added
+**Then** "Kitchen" appears as a new nav item on desktop sidebar only — it does NOT appear in the mobile bottom tab bar (owner-only entry point; kitchen staff bookmark the URL)
+
+---
+
+### Story 8.2: Order Tickets, Sequence & Priority Signals
+
+As kitchen staff,
+I want each order shown as a clear ticket with item list and elapsed time,
+So that I can plan prep without misreading anything during a rush.
+
+**Acceptance Criteria:**
+
+**Given** an order is shown on the KDS
+**When** the OrderTicket renders
+**Then** it displays: table number (large, top-left, ≥ 32px font), elapsed time since `submitted_at` (top-right, updates every 30s), full item list with variants (no truncation), and a single bump action button (≥ 64px touch target for greasy/gloved hands)
+
+**Given** an order's elapsed time exceeds 10 minutes
+**When** the ticket renders
+**Then** the ticket card border turns warning color (status token `warning`, not hardcoded hex) and the elapsed time has a pulsing animation — priority signal
+**And** at 15 minutes the border escalates to error color
+
+**Given** orders share the same `submitted_at` minute
+**When** they render
+**Then** they are sorted by `submitted_at` ASC then `id` ASC — deterministic order across reloads (fixes the `sortDesc` tie-break gap noted in 5-1 deferred work)
+
+**Given** the KDS displays more than 12 active orders
+**When** rendering
+**Then** the grid scrolls vertically while keeping newest at the top — no orders are hidden off-screen
+**And** the page never shows a horizontal scrollbar
+
+**Given** the feed first loads
+**When** the skeleton displays
+**Then** 6 ticket-shaped placeholders are shown — match the real grid layout, no spinners
+
+**Given** the Active filter is implicit
+**When** the KDS renders
+**Then** only orders with status `received` or `preparing` are shown — `ready` and `completed` disappear from the KDS
+
+---
+
+### Story 8.3: Bump-to-Complete Workflow with Undo
+
+As kitchen staff,
+I want to bump an order with a single tap when prep is done, with a short undo window,
+So that the front of house knows the order is ready without me leaving the kitchen.
+
+**Acceptance Criteria:**
+
+**Given** a ticket is on the KDS
+**When** kitchen staff taps the bump button
+**Then** the order advances to `ready` status via `advanceOrderStatus(orderId, 'ready')` from Epic 9 and the ticket animates off the grid (200ms slide-out)
+**And** the action requires no confirmation dialog — single tap
+
+**Given** an order is bumped
+**When** the front-of-house Admin UI is open
+**Then** the order's status updates in the OrderCard within 5 seconds via the existing Realtime channel — confirms cross-surface consistency
+
+**Given** a bump action fails (network/Realtime error)
+**When** the Server Action returns `{ success: false }`
+**Then** the ticket remains on the grid (no slide-out) and a transient inline error appears on the ticket — no toast (per UX-DR17)
+**And** the bump button re-enables for retry
+
+**Given** kitchen staff need to undo a bump
+**When** they tap the small "Undo" affordance that appears at the bottom of the grid for 5 seconds after a bump
+**Then** the order is restored to its previous status via `advanceOrderStatus(orderId, 'preparing')` and the ticket re-renders on the grid
+**And** after 5s the affordance disappears — to undo later, the owner must use the Admin UI
+
+---
+
+## Epic 9: Customer Order Status Tracking *(Post-MVP — Phase 2)*
+
+**Status:** Backlog
+**Depends on:** Epic 5 (Real-Time Order Management)
+
+Customers receive real-time status updates on their submitted order — confirmed → preparing → ready → completed — from the confirmation screen, without needing to call a server or refresh the page. Restaurant owners advance status inline from the existing Admin UI order feed.
+
+### Story 9.1: Order Status Data Model & Server Action
+
+As a developer,
+I want orders to carry a status enum with server-side advancement rules and Realtime broadcasting,
+So that the customer-facing status workflow has a single source of truth and updates propagate live.
+
+**Acceptance Criteria:**
+
+**Given** the schema migration is applied
+**When** `orders` is inspected
+**Then** a `status` column exists as an enum: `received` (default), `preparing`, `ready`, `completed`
+**And** existing rows are backfilled: `is_handled = true` → `completed`, otherwise `received`
+**And** `is_handled` is preserved for backward compatibility — `completed` is the new terminal state and existing Admin UI tabs continue to read `is_handled` until Story 9.2 migrates the feed
+
+**Given** an authenticated owner calls `advanceOrderStatus(orderId, nextStatus)`
+**When** the action validates the transition (only one step forward at a time: `received → preparing → ready → completed`)
+**Then** the order's status is updated, `is_handled` is set to `true` when status reaches `completed`
+**And** invalid transitions return `{ success: false, error: 'Invalid status transition' }` — no DB write
+
+**Given** the migration is applied
+**When** the Realtime channel is configured
+**Then** `event: '*'` on `orders` (replacing the prior INSERT-only subscription) broadcasts UPDATE events
+**And** RLS allows sessionless customer SELECTs of `status` for their own `(restaurant_id, table_id, id)` via a dedicated `customer_select_order_by_id` policy
+
+**Given** the migration is complete
+**When** `tests/rls/order-status.spec.ts` runs
+**Then** only the owning restaurant can advance an order's status (cross-tenant attempts return 0 rows)
+**And** sessionless customer reads succeed only when the `(restaurant_slug, table_number, order_id)` tuple matches
+
+---
+
+### Story 9.2: Admin UI — Inline Status Controls
+
+As a restaurant owner,
+I want to advance an order's status from the order feed without leaving the page,
+So that I can communicate kitchen progress without paper tickets or staff verbal handoff.
+
+**Acceptance Criteria:**
+
+**Given** an owner is on `/admin/orders` and an order is in `received` state
+**When** the OrderCard renders
+**Then** a status dot reflects the current status (orange = received, blue = preparing, green = ready, grey = completed)
+**And** a "Mark preparing" text link replaces the old "Mark handled" — single tap advances the status
+
+**Given** an order is in `preparing` state
+**When** the OrderCard renders
+**Then** the link reads "Mark ready" and tapping advances to `ready`
+
+**Given** an order is in `ready` state
+**When** the OrderCard renders
+**Then** the link reads "Mark completed" and tapping moves the order to the Handled/Completed tab
+
+**Given** an owner taps any status link
+**When** the Server Action returns
+**Then** the OrderCard transitions inline with the new dot color and label — no page refresh
+**And** the optimistic UI rolls back if the action returns `{ success: false }`, with an inline error on the card
+
+**Given** the existing `markOrderHandled` action
+**When** Story 9.2 is implemented
+**Then** `markOrderHandled` is deprecated and removed; all callers use `advanceOrderStatus(id, 'completed')` — single status workflow
+
+---
+
+### Story 9.3: Customer Order Tracking on Confirmation Screen
+
+As a dine-in customer,
+I want to see the live status of my order after submission,
+So that I know whether my food is being prepared or ready, without flagging down a server.
+
+**Acceptance Criteria:**
+
+**Given** a customer has just submitted an order and is on the OrderConfirmationScreen
+**When** the screen renders
+**Then** below the headline a status pill is shown with four states: "Confirmed" (filled), "Preparing" (pulse animation), "Ready" (highlighted), "Completed" (muted)
+**And** the current status is rendered server-side via SSR — no flash of the wrong state
+
+**Given** the restaurant owner advances the order's status
+**When** Supabase Realtime broadcasts the UPDATE event
+**Then** the customer's screen updates within 5 seconds (FR54) — uses the browser Supabase client subscribed to `orders` filtered by `id=eq.{orderId}`
+**And** `realtime.setAuth()` is NOT required because the customer is sessionless; subscription uses the public anon access pattern via the new `customer_select_order_by_id` policy
+
+**Given** a customer reloads the confirmation page (URL contains `order_id`)
+**When** the page renders via SSR
+**Then** the current order status is fetched server-side via the admin client (consistent with the sessionless customer flow) and rendered correctly
+
+**Given** Realtime is unavailable
+**When** the subscription fails or drops
+**Then** polling fallback at 4000ms activates silently — matches Admin UI pattern
+
+**Given** the order is marked `completed`
+**When** the customer's screen updates
+**Then** the status pill reads "Order completed — enjoy your meal" and the Realtime/polling subscription is unsubscribed
+**And** the status update is announced via `aria-live="polite"` on the pill
+
+---
+
+## Epic 10: Multi-Language Menus *(Post-MVP — Phase 2)*
+
+**Status:** Backlog
+**Depends on:** Epic 2 (Menu Building & Publishing), Epic 4 (Customer Ordering Flow)
+
+Restaurant owners publish menu item translations in supported languages. Customers see the menu in their browser's preferred language or switch manually on the menu page.
+
+### Story 10.1: Translation Data Model & Owner Editor
+
+As a restaurant owner,
+I want to enter translations for each menu item alongside the original content,
+So that customers can read my menu in their preferred language.
+
+**Acceptance Criteria:**
+
+**Given** the schema migration is applied
+**When** `menu_items` is inspected
+**Then** a `translations` jsonb column exists with shape `{ [lang_code]: { name: string, description?: string } }` — extends current single-language `name` / `description` columns without breaking them
+**And** the `name` and `description` columns remain the canonical "default" values used when no translation matches
+**And** a `supported_languages text[]` column is added to `restaurants` (default `[]`) plus a `default_language text` column (default `'en'`)
+
+**Given** the owner edits a menu item
+**When** the MenuItemForm renders
+**Then** a "Translations" expandable section is shown beneath the main fields, listing the restaurant's enabled languages
+**And** for each enabled language, `name` + `description` input fields accept translation text and auto-save with the same 2s debounce pattern as the main fields
+
+**Given** the restaurant Settings page
+**When** it renders
+**Then** the owner can enable up to 5 additional languages from a fixed initial set: `en`, `es`, `fr`, `ja`, `zh` — selection saved to `restaurants.supported_languages`
+**And** the owner can set the `default_language` from among the enabled set
+
+**Given** an owner saves a translation
+**When** the auto-save Server Action runs
+**Then** the `translations` jsonb is updated atomically using a Postgres `jsonb_set` expression — partial saves never corrupt other languages
+**And** validation rejects writes for any `lang_code` not in `restaurants.supported_languages`
+
+**Given** RTL languages
+**When** Story 10.1 spec is written
+**Then** RTL support (e.g. Arabic, Hebrew) is explicitly out of scope for Phase 2 — initial language set is LTR-only
+
+---
+
+### Story 10.2: Customer Language Selection & Rendering
+
+As a dine-in customer,
+I want the menu to appear in my preferred language without extra taps,
+So that I can order confidently in a language I read fluently.
+
+**Acceptance Criteria:**
+
+**Given** a customer scans a QR code
+**When** the SSR menu page renders
+**Then** the language is selected via this priority chain:
+  1. `?lang=` URL search param (if value is in `restaurants.supported_languages`)
+  2. `Accept-Language` header best match against `restaurants.supported_languages` using BCP-47 negotiation
+  3. `restaurants.default_language`
+  4. column `name` / `description` raw text (final fallback)
+**And** the resolved language code is rendered as `<html lang="...">`
+
+**Given** the customer is on the menu page
+**When** the language switcher (top-right of the page, globe icon) renders
+**Then** it lists only the restaurant's enabled languages with the current selection marked
+**And** selecting a different language updates the URL `?lang=` param and re-renders the menu in that language via client-side navigation — no full reload, no cart loss
+
+**Given** an item has no translation for the selected language
+**When** that item renders
+**Then** the default column `name` / `description` are shown — never an empty string, never an "[untranslated]" placeholder
+
+**Given** the customer's language selection
+**When** they navigate to the ItemConfigSheet, cart, or confirmation screen
+**Then** all customer-facing surfaces use the selected language. Item content comes from `translations[lang]`; UI chrome strings (button labels, headings) come from a new `i18n/{lang}.json` bundle loaded server-side
+
+**Given** translations are missing for the UI chrome
+**When** the bundle is loaded
+**Then** missing keys fall back to the English bundle — build step asserts every supported language has 100% chrome-string coverage to prevent runtime fallback (CI gate)
+
+**Given** the resolved language is the same as `default_language`
+**When** the menu renders
+**Then** no `?lang=` param is added to the URL — keeps default-case URLs clean for sharing
+
+---
