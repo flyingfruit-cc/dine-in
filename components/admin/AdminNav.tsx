@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Receipt, UtensilsCrossed, QrCode, Settings } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { LayoutDashboard, Receipt, UtensilsCrossed, QrCode, Settings, LogOut } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 const tabs = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
@@ -14,6 +15,13 @@ const tabs = [
 
 export function AdminNav() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/auth/login')
+  }
 
   function isActive(href: string, exact: boolean) {
     return exact ? pathname === href : pathname.startsWith(href)
@@ -44,6 +52,13 @@ export function AdminNav() {
               </Link>
             )
           })}
+          <button
+            onClick={handleSignOut}
+            className="flex flex-1 flex-col items-center gap-1 py-2 text-xs font-medium text-text-secondary transition-colors hover:text-text-primary"
+          >
+            <LogOut size={22} strokeWidth={1.5} />
+            Sign out
+          </button>
         </div>
       </nav>
 
@@ -53,9 +68,12 @@ export function AdminNav() {
         aria-label="Admin navigation"
       >
         <div className="p-4">
-          <p className="text-xs font-semibold uppercase tracking-widest text-text-secondary">
+          <Link
+            href="/"
+            className="text-xs font-semibold uppercase tracking-widest text-text-secondary transition-colors hover:text-text-primary"
+          >
             dine-in
-          </p>
+          </Link>
         </div>
         <div className="flex flex-col gap-1 p-2">
           {tabs.map(({ href, label, icon: Icon, exact }) => {
@@ -76,6 +94,15 @@ export function AdminNav() {
               </Link>
             )
           })}
+        </div>
+        <div className="mt-auto p-2">
+          <button
+            onClick={handleSignOut}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-surface hover:text-text-primary"
+          >
+            <LogOut size={18} strokeWidth={1.5} />
+            Sign out
+          </button>
         </div>
       </nav>
     </>
