@@ -1,5 +1,6 @@
 # generated: 2026-05-09
 # last_updated: 2026-05-20
+# story 9.1 created — epic 9 in-progress
 # project: dine-in-cc
 # project_key: NOKEY
 # tracking_system: file-system
@@ -36,7 +37,7 @@
 
 generated: 2026-05-09
 last_updated: 2026-05-20
-last_event: Story 8.3 done (code review applied)
+last_event: Story 9.1 code-review patches applied (review) — 11 patches, view migration, error-code split. Gated at review→done by Task 6 smoke test.
 project: dine-in-cc
 project_key: NOKEY
 tracking_system: file-system
@@ -105,8 +106,8 @@ development_status:
   epic-8-retrospective: optional
 
   # Epic 9: Customer Order Status Tracking (Post-MVP — Phase 2)
-  epic-9: backlog
-  9-1-order-status-data-model-server-action: backlog
+  epic-9: in-progress
+  9-1-order-status-data-model-server-action: review
   9-2-admin-ui-inline-status-controls: backlog
   9-3-customer-order-tracking-on-confirmation-screen: backlog
   epic-9-retrospective: optional

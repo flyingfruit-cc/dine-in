@@ -12,6 +12,7 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
     table_id: 'table-uuid-1',
     items: [],
     submitted_at: new Date(Date.now() - 60_000).toISOString(),
+    status: 'received',
     is_handled: false,
     handled_at: null,
     total_cents: 0,

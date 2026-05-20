@@ -11,6 +11,7 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
     items: [{ name: 'Burger', quantity: 1, variants: [], unit_price_cents: 0 }],
     total_cents: 0,
     submitted_at: new Date(Date.now() - 30_000).toISOString(),
+    status: 'received',
     is_handled: false,
     handled_at: null,
     ...overrides,

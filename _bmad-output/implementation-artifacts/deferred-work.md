@@ -239,3 +239,16 @@
 - No `KdsScreen` unit test exercises a non-empty `tablesById` — all tests pass `tablesById={{}}`. The lookup wiring (`tablesById[order.table_id] ?? null`) is only covered indirectly via the leaf `OrderTicket` tests. Coverage gap. [tests/unit/admin/KdsScreen.test.tsx]
 - `items` JSONB shape not runtime-validated in `OrderTicket` — malformed write (admin SQL, migration bug) crashes the ticket via `.map`/`.length` of undefined. No error boundary on the KDS grid. Defensive-depth beyond story scope. [components/admin/OrderTicket.tsx:36-44]
 - No unit-test assertion that `border-2` width class is present on `<article>` — the Dev Notes invariant "border-2 over border-1 for visual legibility" is not guarded by tests. Minor coverage gap. [tests/unit/admin/OrderTicket.test.tsx]
+
+## Deferred from: code review of 9-1-order-status-data-model-server-action (2026-05-20)
+
+- Migration is non-idempotent (no `IF NOT EXISTS`, no DOWN script) — pre-existing project convention; one-shot migrations applied via MCP. [supabase/migrations/20260520160000_add_order_status_enum.sql]
+- `UPDATE public.orders SET status = ...` is a full-table rewrite with no batching — acceptable at current scale (32 rows); revisit before production scale-up. [supabase/migrations/20260520160000_add_order_status_enum.sql:16-19]
+- Race window between `ADD COLUMN status` (no default) and `SET NOT NULL`: concurrent INSERTs could land NULL — unavoidable given the backfill-CASE-from-`is_handled` requirement; the safe single-statement `ADD COLUMN ... DEFAULT 'received' NOT NULL` form would lose the backfill mapping. [supabase/migrations/20260520160000_add_order_status_enum.sql:13-23]
+- `orderId` not validated as UUID before DB call — pre-existing pattern shared with `markOrderHandled` / `unbumpOrder`. [actions/orderActions.ts:140]
+- `handled_at` set from `new Date().toISOString()` on the app server, not DB-side `now()` — pre-existing pattern matching `markOrderHandled`; subject to app-server clock skew. [actions/orderActions.ts:160-162]
+- Loose payload type for `is_handled`/`handled_at` — no tagged union enforcing the `completed`-only coupling; code is correct, refactor is style-only. [actions/orderActions.ts:156-162]
+- `console.error('[advanceOrderStatus]', error)` may leak raw Postgres error context to logs — pre-existing project pattern across Server Actions. [actions/orderActions.ts:171]
+- `signInAsOwner` test session lifetime is not refreshed between assertions — JWT could expire mid-suite, pre-existing helper behavior, no observed flakes. [tests/rls/order-status.spec.ts]
+- `beforeAll` partial-failure path would dereference undefined `restA`/`restB` in `afterAll` cleanup — pre-existing test pattern shared with `tenant-isolation.spec.ts`. [tests/rls/order-status.spec.ts:31-49]
+- Six fixture builders (`makeOrder`) duplicate the same factory — adding `status` required editing six files. Pre-existing tech debt; consolidating would expand the diff beyond story scope. [tests/unit/admin/*, tests/unit/shared/*, tests/unit/stores/*]

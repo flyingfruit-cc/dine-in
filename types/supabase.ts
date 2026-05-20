@@ -107,6 +107,7 @@ export type Database = {
           is_handled: boolean
           items: Json
           restaurant_id: string
+          status: Database["public"]["Enums"]["order_status"]
           submitted_at: string
           table_id: string
           total_cents: number
@@ -117,6 +118,7 @@ export type Database = {
           is_handled?: boolean
           items?: Json
           restaurant_id: string
+          status?: Database["public"]["Enums"]["order_status"]
           submitted_at?: string
           table_id: string
           total_cents?: number
@@ -127,6 +129,7 @@ export type Database = {
           is_handled?: boolean
           items?: Json
           restaurant_id?: string
+          status?: Database["public"]["Enums"]["order_status"]
           submitted_at?: string
           table_id?: string
           total_cents?: number
@@ -235,7 +238,21 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      orders_customer_status: {
+        Row: {
+          id: string | null
+          status: Database["public"]["Enums"]["order_status"] | null
+        }
+        Insert: {
+          id?: string | null
+          status?: Database["public"]["Enums"]["order_status"] | null
+        }
+        Update: {
+          id?: string | null
+          status?: Database["public"]["Enums"]["order_status"] | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
@@ -246,7 +263,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      order_status: "received" | "preparing" | "ready" | "completed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -373,6 +390,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      order_status: ["received", "preparing", "ready", "completed"],
+    },
   },
 } as const

@@ -110,12 +110,15 @@ export interface OrderItem {
   unit_price_cents: number
 }
 
+export type OrderStatus = 'received' | 'preparing' | 'ready' | 'completed'
+
 export interface Order {
   id: string
   restaurant_id: string
   table_id: string
   items: OrderItem[]
   submitted_at: string
+  status: OrderStatus
   is_handled: boolean
   handled_at: string | null
   total_cents: number
