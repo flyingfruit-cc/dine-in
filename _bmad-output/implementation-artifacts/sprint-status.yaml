@@ -1,5 +1,5 @@
 # generated: 2026-05-09
-# last_updated: 2026-05-09
+# last_updated: 2026-05-20
 # project: dine-in-cc
 # project_key: NOKEY
 # tracking_system: file-system
@@ -36,7 +36,7 @@
 
 generated: 2026-05-09
 last_updated: 2026-05-20
-last_event: Post-MVP epics 7-10 reordered (Epic 7 ↔ Epic 9 swap: Analytics now Epic 7, Status Tracking now Epic 9)
+last_event: Epic 4 promoted to done — all MVP epics (1-6) now done
 project: dine-in-cc
 project_key: NOKEY
 tracking_system: file-system
@@ -44,15 +44,16 @@ story_location: _bmad-output/implementation-artifacts
 
 development_status:
   # Epic 1: Project Foundation & Restaurant Authentication
-  epic-1: in-progress
+  epic-1: done
   1-1-project-initialization-infrastructure-setup: done
   1-2-database-schema-rls-policies-security-foundation: done
   1-3-restaurant-owner-signup-restaurant-profile-creation: done
   1-4-admin-ui-authentication-login-logout-password-reset: done
+  1-5-restaurant-settings-view-edit-profile: done  # implemented without a story file (retroactively reconciled 2026-05-20)
   epic-1-retrospective: optional
 
   # Epic 2: Menu Building & Publishing
-  epic-2: in-progress
+  epic-2: done
   2-1-category-management: done
   2-2-menu-item-creation-edit-delete: done
   2-3-item-variants-pricing: done
@@ -63,13 +64,13 @@ development_status:
   epic-2-retrospective: optional
 
   # Epic 3: Table Management & QR Code Generation
-  epic-3: in-progress
+  epic-3: done
   3-1-table-creation-qr-code-generation-download: done
   3-2-table-deletion-qr-code-invalidation: done
   epic-3-retrospective: optional
 
   # Epic 4: Customer Ordering Flow
-  epic-4: in-progress
+  epic-4: done
   4-1-qr-scan-anonymous-session-menu-load: done
   4-2-menu-browsing-by-category-with-availability-filtering: done
   4-3-item-detail-variant-configuration-add-to-cart: done
@@ -78,13 +79,13 @@ development_status:
   epic-4-retrospective: done
 
   # Epic 5: Real-Time Order Management
-  epic-5: in-progress
+  epic-5: done
   5-1-real-time-order-feed-with-polling-fallback: done
   5-2-order-management-mark-handled-session-history: done
   epic-5-retrospective: optional
 
   # Epic 6: Platform Administration
-  epic-6: in-progress
+  epic-6: done
   6-1-platform-admin-access-tenant-list: done
   6-2-tenant-account-inspection-data-access: done
   epic-6-retrospective: optional
@@ -107,7 +108,7 @@ development_status:
   epic-9: backlog
   9-1-order-status-data-model-server-action: backlog
   9-2-admin-ui-inline-status-controls: backlog
-  9-3-customer-order-tracking-confirmation-screen: backlog
+  9-3-customer-order-tracking-on-confirmation-screen: backlog
   epic-9-retrospective: optional
 
   # Epic 10: Multi-Language Menus (Post-MVP — Phase 2)

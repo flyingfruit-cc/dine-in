@@ -493,7 +493,6 @@ The only design innovation is **the combination**: a consumer-grade mobile order
 - Customer flow (mobile): single column, 16px horizontal margins
 - Admin UI order feed (mobile): single column, 16px margins
 - Admin UI menu builder (desktop): 12-column grid, 24px gutters, 1280px max-width
-- Admin UI order feed (desktop): 2-column split — order feed left, order detail right
 
 **Safe areas:** All tap targets minimum 44×44px (Apple HIG standard). Bottom navigation bars and cart bars respect iOS safe area insets.
 
@@ -520,7 +519,6 @@ Six directions explored across five surfaces:
 - Admin order feed: Direction A (full cards with inline actions), Direction B (compact list with status dots and active/handled tabs)
 - Item configuration: Bottom sheet (confirmed in Step 7)
 - Confirmation screen: Full-screen, kitchen-explicit copy
-- Desktop admin: 2-column split (list left, detail right)
 
 ### Chosen Direction
 
@@ -530,15 +528,12 @@ Six directions explored across five surfaces:
 | Admin order feed | **Direction B — Compact List** | More orders visible per screen; dot-based status indicators readable at arm's length; Active/Handled tab separation keeps the live feed clean without visual noise from handled items |
 | Item configuration | **Bottom sheet** | Stays in menu context, single-hand use |
 | Confirmation screen | **No changes** — full-screen, kitchen-explicit copy as specified |
-| Desktop admin | **2-column split** — order list left, selected order detail right |
 
 ### Design Rationale
 
 **D1 for customer menu:** Food photos are load-bearing in a restaurant context — they reduce decision time and build appetite before the order is placed. The horizontal category tab bar (Uber Eats model) requires zero learning. The row layout with right-aligned prices scales cleanly regardless of menu length.
 
 **Direction B for Admin feed:** During a Friday rush with 8 simultaneous orders, compact rows mean Marco sees more of his queue without scrolling. The orange dot indicator is readable in peripheral vision — he doesn't need to read the card to know a new order arrived. The Active/Handled tab split keeps the live feed uncluttered; handled orders are still accessible but don't compete for attention.
-
-**Desktop 2-column split:** When Marco is behind the counter, the full order detail on the right panel removes the mobile constraint of full-screen cards. The list on the left functions identically to the mobile compact list — same mental model, more screen real estate.
 
 ### Implementation Approach
 
@@ -555,11 +550,6 @@ Six directions explored across five surfaces:
 - Active/Handled/All tab bar at top
 - "Mark handled" as inline text link — single tap, no button chrome
 - Row tap expands inline — no full-screen navigation
-
-**Admin order feed (desktop):**
-- Left panel: 240px sidebar, compact order list (identical to mobile Direction B)
-- Right panel: full order detail, large table number, item list, single "Mark Handled" button
-- Selecting order in left panel updates right panel — no page navigation
 
 ## User Journey Flows
 
@@ -756,22 +746,12 @@ Available from design-md (Apple-inspired base): Typography scale, Button (primar
 | **Purpose** | Single order row in the Admin UI compact feed |
 | **Anatomy** | Status dot · Table number (bold) · Item summary (truncated) · Timestamp · "Mark handled" text link |
 | **States** | Active (orange dot, full opacity) · Handled (grey dot, 40% opacity, no action) |
-| **Variants** | Mobile (full-width row) / Desktop (left panel list item) |
+| **Variants** | Full-width row (mobile + desktop, single layout) |
 | **Interaction** | "Mark handled" → immediate visual change, async server call. Row tap → expands inline to full item list |
 | **Accessibility** | `role="article"`, `aria-label="Order for Table {n}, {items}, {time}"` |
 | **Content rules** | Item summary: first 2 items named, remainder "+N more". Timestamp: relative up to 60 min, then absolute |
 
-**6. OrderDetailPanel (Admin — desktop right panel)**
-
-| Attribute | Specification |
-|---|---|
-| **Purpose** | Full order detail in desktop 2-column Admin layout |
-| **Anatomy** | Table number (large) · Timestamp · Item list (name + variant) · "Mark Handled" button |
-| **States** | Empty (no order selected) · Active · Handled (button muted) |
-| **Variants** | Desktop only |
-| **Accessibility** | `role="region"`, `aria-label="Order detail"`, `aria-live="polite"` on content area |
-
-**7. OnboardingChecklist**
+**6. OnboardingChecklist**
 
 | Attribute | Specification |
 |---|---|
@@ -790,10 +770,9 @@ Available from design-md (Apple-inspired base): Typography scale, Button (primar
 | P0 | CartBar | Customer can't reach checkout |
 | P0 | OrderConfirmationScreen | Customer flow has no end state |
 | P0 | OrderCard | Admin UI has no order feed |
-| P1 | OrderDetailPanel | Desktop Admin unusable |
 | P1 | OnboardingChecklist | Owner setup requires manual discovery |
 
-All custom components consume only tokens from the Visual Foundation — no hardcoded hex values. Mark Handled action implemented once, shared by OrderCard and OrderDetailPanel.
+All custom components consume only tokens from the Visual Foundation — no hardcoded hex values.
 
 ### Implementation Roadmap
 
@@ -801,7 +780,7 @@ All custom components consume only tokens from the Visual Foundation — no hard
 
 **Phase 2 — Admin Order Feed (P0):** OrderCard → Active/Handled tab logic → Realtime subscription
 
-**Phase 3 — Admin Desktop + Onboarding (P1):** OrderDetailPanel → OnboardingChecklist → Desktop layout shell
+**Phase 3 — Admin Desktop + Onboarding (P1):** OnboardingChecklist → Desktop layout shell (left sidebar nav, wider menu builder forms)
 
 ## UX Consistency Patterns
 
@@ -913,7 +892,7 @@ dine-in-cc has two distinct surfaces with different responsive requirements:
 **Admin UI — mobile-first, enhanced for desktop:**
 - **Mobile (portrait phone):** Order feed + menu builder fully functional. Single-column layouts, bottom tab navigation, thumb-zone actions.
 - **Tablet:** Same as mobile layout. No special tablet-optimised view for MVP.
-- **Desktop:** 2-column order feed (sidebar list + detail panel), left sidebar navigation replacing bottom tabs, menu builder gains wider form layout.
+- **Desktop:** Left sidebar navigation replacing bottom tabs, menu builder gains wider form layout. Order feed remains single-column (same layout as mobile).
 
 ### Breakpoint Strategy
 
@@ -923,7 +902,7 @@ Mobile-first implementation. Layouts start at the smallest size and expand upwar
 |---|---|---|
 | `sm` (mobile) | 0 – 767px | Single column, bottom tabs, full-width components |
 | `md` (tablet) | 768px – 1023px | Same as mobile — no distinct tablet layout for MVP |
-| `lg` (desktop) | 1024px – 1279px | 2-column Admin UI, left sidebar nav, wider form fields |
+| `lg` (desktop) | 1024px – 1279px | Left sidebar nav (replaces bottom tabs), wider menu builder forms |
 | `xl` (wide desktop) | 1280px+ | Max-width 1280px centred, same layout as `lg` |
 
 **Customer flow:** Breakpoints irrelevant — mobile-only, single column always.

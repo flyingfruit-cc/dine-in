@@ -126,12 +126,10 @@ UX-DR2: Build **MenuItemRow** custom component — 80×80px food photo (left), i
 UX-DR3: Build **ItemConfigSheet** custom component — bottom sheet with handle + food photo (16:9 full-width) + name/price + description + variant selectors + "Add to Order" CTA. States: default, variant selected, add pending. `role="dialog"`, `aria-modal="true"`, focus trap while open, Escape closes. Focus moves to sheet heading on open; returns to triggering MenuItemRow on dismiss.
 UX-DR4: Build **CartBar** custom component — persistent fixed-bottom bar. Anatomy: item count pill (left) + "Review Order" label (centre) + total price (right). States: hidden (0 items), active (≥1 item), submitting. Respects iOS safe area inset. `role="complementary"`, `aria-label="Cart: {count} items, {total}"`, `aria-live="polite"` on count change.
 UX-DR5: Build **OrderConfirmationScreen** custom component — full-screen closed-loop success state. Anatomy: green check icon + headline ("Your order is with the kitchen") + subtext + divider + order summary (no prices) + restaurant/table tag. `role="main"`, `aria-live="assertive"` on headline, focus moves to headline on mount. Errors route back to order review with retry — never shown here.
-UX-DR6: Build **OrderCard** custom component (Admin) — compact row. Anatomy: 8px status dot + table number (bold, `title-3` size) + item summary (first 2 items + "+N more") + relative/absolute timestamp + "Mark handled" text link. States: active (orange dot, full opacity), handled (grey dot, 40% opacity, no action). Row tap expands inline to full item list. Mobile (full-width row) and desktop (left panel list item) variants. `role="article"`, `aria-label="Order for Table {n}, {items}, {time}"`.
-UX-DR7: Build **OrderDetailPanel** custom component (Admin desktop only) — full order detail right panel. Anatomy: large table number + timestamp + full item list (name + variants) + "Mark Handled" button. States: empty (no order selected), active, handled (button muted). `role="region"`, `aria-label="Order detail"`, `aria-live="polite"` on content area.
+UX-DR6: Build **OrderCard** custom component (Admin) — compact row. Anatomy: 8px status dot + table number (bold, `title-3` size) + item summary (first 2 items + "+N more") + relative/absolute timestamp + "Mark handled" text link. States: active (orange dot, full opacity), handled (grey dot, 40% opacity, no action). Row tap expands inline to full item list. `role="article"`, `aria-label="Order for Table {n}, {items}, {time}"`.
 UX-DR8: Build **OnboardingChecklist** custom component — contextual setup guide in Admin dashboard until all steps complete. Anatomy: progress indicator + step list (icon + label + status) + CTA per incomplete step. States: incomplete, complete (checkmark, muted), all-complete (auto-hides). Steps: Add menu items → Preview → Publish → Create tables → Print QR codes.
 UX-DR9: Customer menu implements design direction D1 (Classic Apple) — image-led rows, horizontal category tab bar (active state: `border-bottom: 2px solid #FF6B35`), 80×80px photos `border-radius: 12px`, `surface-base` (#FFFFFF) light mode background, cinematic food photo treatment.
 UX-DR10: Admin order feed implements direction B (Compact List) — `surface-base` (#000000) dark mode background, Active/Handled/All tab bar at top, inline row expansion (no full-screen navigation), "Mark handled" as text link (no button chrome), 8px status dot (orange=active, grey=handled).
-UX-DR11: Admin UI desktop layout — 2-column split at `lg` breakpoint (1024px+): 240px left sidebar order list + right main panel for order detail. Left sidebar navigation (3 sections: Orders · Menu · Settings) replaces bottom tab bar at `lg`+. Menu builder gains wider form layout on desktop.
 UX-DR12: Skeleton loading screens — match real content layout exactly. Customer menu skeleton: category tab placeholders + 3 item row placeholders with grey image boxes. Admin feed skeleton: 3 compact row placeholders with dot + text lines. No generic spinners anywhere.
 UX-DR13: Empty state patterns — every empty state has a contextual CTA. Empty menu builder: "Add your first item →". Empty order feed Active tab: "No orders yet — orders will appear here automatically". Empty table list: "Create your first table →". Copy is direct and non-apologetic.
 UX-DR14: Accessibility implementation — focus management for ItemConfigSheet (focus to heading on open, return to triggering row on dismiss); skip link `<a href="#main-content">` as first focusable element in Admin UI desktop; error messages with `role="alert"`; CartBar count with `aria-live="polite"`; Admin feed new order arrival with `aria-live="polite"`; full keyboard navigation in all Admin UI flows; axe-core automated accessibility checks in CI (blocks deploy on WCAG AA violations).
@@ -920,37 +918,6 @@ So that I can manage the queue and track order completion throughout the session
 **Given** the owner selects the All tab
 **When** it renders
 **Then** all orders (active + handled) are shown together, newest first
-
----
-
-### Story 5.3: Desktop 2-Column Order Layout & Detail Panel
-
-As a restaurant owner,
-I want a dedicated order detail panel when using the Admin UI on desktop,
-So that I can manage the full service comfortably from behind the counter with more screen space.
-
-**Acceptance Criteria:**
-
-**Given** the Admin UI is accessed on a screen ≥1024px
-**When** the orders page renders
-**Then** the layout is 2-column: 240px left sidebar with the compact order list + right main panel with OrderDetailPanel
-**And** the bottom tab bar is replaced by a left sidebar with 3 sections: Orders · Menu · Settings
-
-**Given** the owner selects an order from the left sidebar
-**When** the selection registers
-**Then** the OrderDetailPanel updates in the right panel showing: large table number, timestamp, full item list (name + variants), and a "Mark Handled" button — no full-page navigation
-
-**Given** the owner clicks "Mark Handled" in the OrderDetailPanel
-**When** the action completes
-**Then** the button becomes muted, the sidebar OrderCard transitions to handled state, and the next unhandled order is auto-selected
-
-**Given** no order is selected
-**When** the right panel renders
-**Then** an empty placeholder is shown in the right panel
-
-**Given** the Admin UI is below `lg` (mobile/tablet)
-**When** the orders page renders
-**Then** the single-column compact list is used — no OrderDetailPanel is rendered
 
 ---
 
