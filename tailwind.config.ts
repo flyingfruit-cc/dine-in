@@ -57,6 +57,7 @@ export default {
         accent: "#FF6B35",
         "accent-muted": "var(--accent-muted)",
         success: "var(--success)",
+        warning: "var(--warning)",
         border: "var(--border)",
         error: "#FF3B30",
       },

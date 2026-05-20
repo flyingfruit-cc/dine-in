@@ -115,6 +115,43 @@ export async function createAnonCustomerClient(
   return { client, userId }
 }
 
+export async function createTestTable(
+  serviceClient: SupabaseClient<Database>,
+  restaurantId: string,
+  number: number
+) {
+  const { data, error } = await serviceClient
+    .from('tables')
+    .insert({ restaurant_id: restaurantId, number })
+    .select('id')
+    .single()
+  if (error) throw new Error(`createTestTable failed: ${error.message}`)
+  return data.id as string
+}
+
+export async function createTestOrder(
+  serviceClient: SupabaseClient<Database>,
+  restaurantId: string,
+  tableId: string,
+  items: Array<{ name: string; quantity: number; variants: string[]; unit_price_cents: number }>,
+  submittedAt?: string
+) {
+  const { data, error } = await serviceClient
+    .from('orders')
+    .insert({
+      restaurant_id: restaurantId,
+      table_id: tableId,
+      items,
+      submitted_at: submittedAt ?? new Date().toISOString(),
+      is_handled: false,
+      total_cents: 0,
+    })
+    .select('id')
+    .single()
+  if (error) throw new Error(`createTestOrder failed: ${error.message}`)
+  return data.id as string
+}
+
 export async function cleanupTestUsers(
   serviceClient: SupabaseClient<Database>,
   userIds: string[]

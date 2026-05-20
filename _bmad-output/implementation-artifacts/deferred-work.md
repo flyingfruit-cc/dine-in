@@ -230,3 +230,12 @@
 - `AdminNav.isActive(href, false)` uses `pathname.startsWith(href)` which over-matches similar-prefix routes (e.g. Kitchen tab would highlight on `/admin/kds-summary`). Pre-existing; affects every nav tab. Cross-cutting fix needed. [components/admin/AdminNav.tsx:31-33]
 - Loading skeleton has no `role="status"` / `aria-busy` / `aria-live` — same pattern across every admin loading.tsx; cross-cutting a11y enhancement. [app/admin/kds/loading.tsx]
 - `profiles.single()` PGRST116 path not explicitly handled — pre-existing pattern; same omission in every `/admin/*` page. Cross-cutting fix. [app/admin/kds/page.tsx:11-19]
+
+## Deferred from: code review of 8-2-order-tickets-sequence-priority-signals (2026-05-20)
+
+- `tablesById` becomes stale once the KDS tablet is loaded — new tables created mid-shift never surface; affected orders permanently render "Table —" until the operator hard-refreshes. Would need realtime subscription on `tables` or on-demand lookup; out of scope for 8.2. [app/admin/kds/page.tsx:22-28]
+- E2E test seeds two timestamped orders but only asserts `.first()` article visibility — doesn't verify both render or that ASC order is correct. The sort-relevant data setup is theatrical. Coverage gap, not a correctness bug. [tests/e2e/admin-kds.spec.ts:84-113]
+- `.slice()` after `.filter()` is redundant — `.filter()` already returns a fresh array, so the in-place `.sort()` would not mutate the store. Defensive code style mandated by the spec; harmless dead op. [components/admin/KdsScreen.tsx:23]
+- No `KdsScreen` unit test exercises a non-empty `tablesById` — all tests pass `tablesById={{}}`. The lookup wiring (`tablesById[order.table_id] ?? null`) is only covered indirectly via the leaf `OrderTicket` tests. Coverage gap. [tests/unit/admin/KdsScreen.test.tsx]
+- `items` JSONB shape not runtime-validated in `OrderTicket` — malformed write (admin SQL, migration bug) crashes the ticket via `.map`/`.length` of undefined. No error boundary on the KDS grid. Defensive-depth beyond story scope. [components/admin/OrderTicket.tsx:36-44]
+- No unit-test assertion that `border-2` width class is present on `<article>` — the Dev Notes invariant "border-2 over border-1 for visual legibility" is not guarded by tests. Minor coverage gap. [tests/unit/admin/OrderTicket.test.tsx]

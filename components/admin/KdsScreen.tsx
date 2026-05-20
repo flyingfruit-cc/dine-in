@@ -1,13 +1,35 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useOrderStore } from '@/stores/orderStore'
-import { formatRelativeTime } from '@/utils/formatTime'
-import type { Order } from '@/types/app'
+import { OrderTicket } from '@/components/admin/OrderTicket'
 
-export function KdsScreen() {
+interface Props {
+  tablesById: Record<string, number>
+}
+
+export function KdsScreen({ tablesById }: Props) {
   const orders = useOrderStore((s) => s.orders)
-  const activeOrders = orders.filter((o) => !o.is_handled)
+  const [now, setNow] = useState(() => new Date())
+
+  // Single interval at the screen level so all tickets re-render together.
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000)
+    return () => clearInterval(id)
+  }, [])
+
+  // .slice() before .sort() to avoid mutating the store-owned array reference.
+  // Compare timestamps via Date.parse so mixed `Z` vs `+00:00` ISO suffixes
+  // sort chronologically (lexicographic compare puts `+` before `Z`).
+  const activeOrders = orders
+    .filter((o) => !o.is_handled)
+    .slice()
+    .sort((a, b) => {
+      const ta = Date.parse(a.submitted_at)
+      const tb = Date.parse(b.submitted_at)
+      if (ta !== tb) return ta - tb
+      return a.id < b.id ? -1 : 1
+    })
 
   useEffect(() => {
     let sentinel: WakeLockSentinel | null = null
@@ -66,26 +88,15 @@ export function KdsScreen() {
       ) : (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
           {activeOrders.map((order) => (
-            <KdsTicketPlaceholder key={order.id} order={order} />
+            <OrderTicket
+              key={order.id}
+              order={order}
+              tableNumber={tablesById[order.table_id] ?? null}
+              now={now}
+            />
           ))}
         </div>
       )}
     </main>
-  )
-}
-
-function KdsTicketPlaceholder({ order }: { order: Order }) {
-  return (
-    <article className="rounded-lg border border-border bg-surface-raised p-4">
-      <header className="flex items-baseline justify-between">
-        <span className="text-2xl font-semibold text-text-primary tabular-nums">
-          Table {order.table_id}
-        </span>
-        <span className="text-xs text-text-secondary tabular-nums">
-          {formatRelativeTime(order.submitted_at)}
-        </span>
-      </header>
-      <p className="mt-2 text-xs italic text-text-secondary">Ticket UI coming in Story 8.2</p>
-    </article>
   )
 }

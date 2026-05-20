@@ -36,7 +36,7 @@
 
 generated: 2026-05-09
 last_updated: 2026-05-20
-last_event: Story 8.1 review complete (3 patches applied, 8 deferred)
+last_event: Story 8.2 done (code review passed)
 project: dine-in-cc
 project_key: NOKEY
 tracking_system: file-system
@@ -100,7 +100,7 @@ development_status:
   # Epic 8: Kitchen Display Screen (KDS) (Post-MVP — Phase 2)
   epic-8: in-progress
   8-1-kds-route-tablet-optimized-layout: done
-  8-2-order-tickets-sequence-priority-signals: backlog
+  8-2-order-tickets-sequence-priority-signals: done
   8-3-bump-to-complete-workflow-with-undo: backlog
   epic-8-retrospective: optional
 

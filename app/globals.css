@@ -71,6 +71,7 @@
   --text-tertiary: #AEAEB2;
   --accent-muted: #FFF0EB;
   --success: #34C759;
+  --warning: #FF9500;
   --border: #D2D2D7;
 }
 
@@ -84,5 +85,6 @@
   --text-tertiary: #6E6E73;
   --accent-muted: #3A1A0A;
   --success: #30D158;
+  --warning: #FF9F0A;
   --border: #38383A;
 }

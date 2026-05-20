@@ -32,11 +32,12 @@ describe('KdsScreen', () => {
 
   afterEach(() => {
     cleanup()
+    vi.useRealTimers()
   })
 
   it('renders empty-state when no active orders', () => {
     useOrderStoreMock.mockImplementation((selector) => selector({ orders: [] }))
-    render(<KdsScreen />)
+    render(<KdsScreen tablesById={{}} />)
     expect(screen.getByText('Waiting for orders')).toBeTruthy()
     expect(screen.queryByRole('article')).toBeNull()
   })
@@ -44,7 +45,7 @@ describe('KdsScreen', () => {
   it('renders one card per active order', () => {
     const orders = [makeOrder(), makeOrder(), makeOrder()]
     useOrderStoreMock.mockImplementation((selector) => selector({ orders }))
-    render(<KdsScreen />)
+    render(<KdsScreen tablesById={{}} />)
     const articles = screen.getAllByRole('article')
     expect(articles.length).toBe(3)
     expect(screen.queryByText('Waiting for orders')).toBeNull()
@@ -52,7 +53,7 @@ describe('KdsScreen', () => {
 
   it('header counter reads "1 order" (singular) for one active order', () => {
     useOrderStoreMock.mockImplementation((selector) => selector({ orders: [makeOrder()] }))
-    render(<KdsScreen />)
+    render(<KdsScreen tablesById={{}} />)
     expect(screen.getByText('1 order')).toBeTruthy()
   })
 
@@ -60,7 +61,7 @@ describe('KdsScreen', () => {
     useOrderStoreMock.mockImplementation((selector) =>
       selector({ orders: [makeOrder(), makeOrder(), makeOrder()] }),
     )
-    render(<KdsScreen />)
+    render(<KdsScreen tablesById={{}} />)
     expect(screen.getByText('3 orders')).toBeTruthy()
   })
 
@@ -68,14 +69,14 @@ describe('KdsScreen', () => {
     const active = makeOrder({ is_handled: false })
     const handled = makeOrder({ is_handled: true, handled_at: new Date().toISOString() })
     useOrderStoreMock.mockImplementation((selector) => selector({ orders: [active, handled] }))
-    render(<KdsScreen />)
+    render(<KdsScreen tablesById={{}} />)
     expect(screen.getAllByRole('article').length).toBe(1)
     expect(screen.getByText('1 order')).toBeTruthy()
   })
 
   it('renders heading "Kitchen"', () => {
     useOrderStoreMock.mockImplementation((selector) => selector({ orders: [] }))
-    render(<KdsScreen />)
+    render(<KdsScreen tablesById={{}} />)
     const heading = screen.getByRole('heading', { level: 1 })
     expect(heading.textContent).toBe('Kitchen')
   })
@@ -91,7 +92,7 @@ describe('KdsScreen', () => {
     })
     useOrderStoreMock.mockImplementation((selector) => selector({ orders: [] }))
     await act(async () => {
-      render(<KdsScreen />)
+      render(<KdsScreen tablesById={{}} />)
     })
     expect(request).toHaveBeenCalledWith('screen')
   })
@@ -99,7 +100,7 @@ describe('KdsScreen', () => {
   it('does not throw when wake lock is unsupported (no navigator.wakeLock)', () => {
     // wakeLock deleted in beforeEach
     useOrderStoreMock.mockImplementation((selector) => selector({ orders: [] }))
-    expect(() => render(<KdsScreen />)).not.toThrow()
+    expect(() => render(<KdsScreen tablesById={{}} />)).not.toThrow()
   })
 
   it('releases wake lock sentinel on unmount', async () => {
@@ -112,7 +113,7 @@ describe('KdsScreen', () => {
     useOrderStoreMock.mockImplementation((selector) => selector({ orders: [] }))
     let unmount: () => void = () => {}
     await act(async () => {
-      const result = render(<KdsScreen />)
+      const result = render(<KdsScreen tablesById={{}} />)
       unmount = result.unmount
     })
     await act(async () => {
@@ -132,7 +133,7 @@ describe('KdsScreen', () => {
     })
     useOrderStoreMock.mockImplementation((selector) => selector({ orders: [] }))
     await act(async () => {
-      render(<KdsScreen />)
+      render(<KdsScreen tablesById={{}} />)
     })
     expect(request).toHaveBeenCalledTimes(1)
     // Tab stays visible, fire visibilitychange anyway — should NOT acquire a second sentinel
@@ -159,7 +160,7 @@ describe('KdsScreen', () => {
     })
     useOrderStoreMock.mockImplementation((selector) => selector({ orders: [] }))
     await act(async () => {
-      render(<KdsScreen />)
+      render(<KdsScreen tablesById={{}} />)
     })
     expect(request).toHaveBeenCalledTimes(1)
     // Simulate browser auto-release (e.g., low battery)
@@ -173,4 +174,51 @@ describe('KdsScreen', () => {
     expect(request).toHaveBeenCalledTimes(2)
   })
 
+  it('sorts orders ASC by submitted_at then by id (tie-break)', () => {
+    const tieTime = new Date('2026-05-20T10:00:00.000Z').toISOString()
+    const earlier = makeOrder({ id: 'aaa-order', submitted_at: new Date('2026-05-20T09:59:00.000Z').toISOString() })
+    const tieFirst = makeOrder({ id: 'bbb-order', submitted_at: tieTime })
+    const tieSecond = makeOrder({ id: 'ccc-order', submitted_at: tieTime })
+    // Map each order's table_id to a distinct, recognizable number so the
+    // rendered DOM order can be asserted via the visible "Table N" text.
+    const tablesById = {
+      [earlier.table_id]: 1,
+      [tieFirst.table_id]: 2,
+      [tieSecond.table_id]: 3,
+    }
+    // Provide in reverse order to confirm the sort reorders them.
+    useOrderStoreMock.mockImplementation((selector) =>
+      selector({ orders: [tieSecond, tieFirst, earlier] }),
+    )
+    const { container } = render(<KdsScreen tablesById={tablesById} />)
+    const articles = container.querySelectorAll('article')
+    expect(articles.length).toBe(3)
+    // Expected ASC order: earlier (Table 1), tieFirst (Table 2 — id 'bbb' < 'ccc'), tieSecond (Table 3)
+    const renderedTables = Array.from(articles).map(
+      (a) => a.querySelector('header span')?.textContent ?? '',
+    )
+    expect(renderedTables[0]).toBe('Table 1')
+    expect(renderedTables[1]).toBe('Table 2')
+    expect(renderedTables[2]).toBe('Table 3')
+  })
+
+  it('30s tick updates elapsed time display', async () => {
+    vi.useFakeTimers()
+    const submittedAt = new Date(Date.now() - 10_000).toISOString() // 10 seconds ago — "just now"
+    const order = makeOrder({ id: 'tick-test', submitted_at: submittedAt })
+    useOrderStoreMock.mockImplementation((selector) => selector({ orders: [order] }))
+    const { container } = render(<KdsScreen tablesById={{}} />)
+
+    // Initially "just now" (< 1 min ago) — target the ticket's time span, not the KDS header count span
+    const timeSpanBefore = container.querySelector('article header span:last-child')
+    expect(timeSpanBefore?.textContent?.includes('just now')).toBe(true)
+
+    // Advance 60 seconds — the 30s interval fires, now is ~70s after submission
+    await act(() => {
+      vi.advanceTimersByTime(60_000)
+    })
+
+    const timeSpanAfter = container.querySelector('article header span:last-child')
+    expect(timeSpanAfter?.textContent?.includes('1m ago')).toBe(true)
+  })
 })

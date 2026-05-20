@@ -19,5 +19,18 @@ export default async function AdminKdsPage() {
 
   if (!profile?.restaurant_id) redirect('/auth/onboarding')
 
-  return <KdsScreen />
+  const { data: tables, error: tablesError } = await supabase
+    .from('tables')
+    .select('id, number')
+    .eq('restaurant_id', profile.restaurant_id)
+
+  if (tablesError) {
+    // RLS / network failure — surface so kitchen staff don't see silent "Table —" everywhere
+    console.error('[admin/kds] failed to load tables for lookup', tablesError)
+  }
+
+  const tablesById: Record<string, number> = {}
+  for (const t of tables ?? []) tablesById[t.id] = t.number
+
+  return <KdsScreen tablesById={tablesById} />
 }

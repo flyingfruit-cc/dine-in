@@ -3,6 +3,8 @@ import {
   getServiceClient,
   createTestRestaurant,
   createTestOwner,
+  createTestTable,
+  createTestOrder,
   cleanupTestRestaurants,
   cleanupTestUsers,
 } from '../rls/helpers'
@@ -75,5 +77,42 @@ test.describe('Admin KDS page', () => {
     await signIn(page)
     await page.goto('/admin/kds')
     await expect(page.getByText('Waiting for orders')).toBeVisible()
+  })
+
+  test('KDS renders order tickets with Bump button and no horizontal scrollbar', async ({ page }) => {
+    const tableId = await createTestTable(svc, restaurantId, 1)
+    const items = [{ name: 'Burger', quantity: 1, variants: [], unit_price_cents: 1500 }]
+    const t1 = new Date(Date.now() - 120_000).toISOString()
+    const t2 = new Date(Date.now() - 60_000).toISOString()
+    await createTestOrder(svc, restaurantId, tableId, items, t1)
+    await createTestOrder(svc, restaurantId, tableId, items, t2)
+
+    // Sign in at the default viewport (login UI is not guaranteed responsive at 360px), then resize.
+    await signIn(page)
+    await page.setViewportSize({ width: 360, height: 800 })
+    await page.goto('/admin/kds')
+
+    // At least one ticket article visible
+    const ticket = page.locator('article').first()
+    await expect(ticket).toBeVisible()
+
+    // Bump button is visible inside the first ticket
+    const bumpBtn = ticket.getByRole('button', { name: /bump/i })
+    await expect(bumpBtn).toBeVisible()
+
+    // No horizontal scrollbar at 360px — wait for layout to settle
+    await page.waitForFunction(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      undefined,
+      { timeout: 2000 },
+    )
+
+    // No horizontal scrollbar at 1280px
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await page.waitForFunction(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      undefined,
+      { timeout: 2000 },
+    )
   })
 })
