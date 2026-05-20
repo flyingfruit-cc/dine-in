@@ -56,6 +56,7 @@ export default {
         "text-tertiary": "var(--text-tertiary)",
         accent: "#FF6B35",
         "accent-muted": "var(--accent-muted)",
+        info: "var(--info)",
         success: "var(--success)",
         warning: "var(--warning)",
         border: "var(--border)",

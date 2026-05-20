@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Order } from '@/types/app'
+import type { Order, OrderStatus } from '@/types/app'
 
 interface OrderStore {
   orders: Order[]
@@ -7,8 +7,7 @@ interface OrderStore {
   setOrders: (orders: Order[]) => void
   addOrder: (order: Order) => void
   updateOrder: (order: Order) => void
-  markHandled: (orderId: string) => void
-  unmarkHandled: (orderId: string) => void
+  updateStatus: (orderId: string, status: OrderStatus) => void
   setRealtimeReady: (ready: boolean) => void
   reset: () => void
 }
@@ -35,18 +34,27 @@ export const useOrderStore = create<OrderStore>((set) => ({
       }
       return { orders: state.orders.map((o) => (o.id === order.id ? order : o)) }
     }),
-  markHandled: (orderId) =>
-    set((state) => ({
-      orders: state.orders.map((o) =>
-        o.id === orderId ? { ...o, is_handled: true, handled_at: new Date().toISOString() } : o,
-      ),
-    })),
-  unmarkHandled: (orderId) =>
-    set((state) => ({
-      orders: state.orders.map((o) =>
-        o.id === orderId ? { ...o, is_handled: false, handled_at: null } : o,
-      ),
-    })),
+  updateStatus: (orderId, status) =>
+    set((state) => {
+      const existing = state.orders.find((o) => o.id === orderId)
+      if (!existing) return state
+      // Maintains the is_handled ⇔ status==='completed' invariant unconditionally,
+      // so rollbacks from optimistic completion (e.g. completed → ready) cleanly
+      // reset is_handled / handled_at, not just the status field.
+      const isCompleting = status === 'completed'
+      return {
+        orders: state.orders.map((o) =>
+          o.id === orderId
+            ? {
+                ...o,
+                status,
+                is_handled: isCompleting,
+                handled_at: isCompleting ? new Date().toISOString() : null,
+              }
+            : o,
+        ),
+      }
+    }),
   setRealtimeReady: (ready) => set({ isRealtimeReady: ready }),
   reset: () => set({ orders: [], isRealtimeReady: false }),
 }))

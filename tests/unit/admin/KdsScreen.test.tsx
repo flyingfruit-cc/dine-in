@@ -5,14 +5,13 @@ import type { Order } from '@/types/app'
 
 // --- Store mock -----------------------------------------------------------
 // KdsScreen calls both useOrderStore(selector) (React hook) and
-// useOrderStore.getState().markHandled/unmarkHandled (outside the React tree).
+// useOrderStore.getState().updateStatus (outside the React tree).
 // We expose a mutable orders array so assertions can read store state.
 
 const storeOrders: Order[] = []
 
 const useOrderStoreMock = vi.fn()
-const markHandledMock = vi.fn()
-const unmarkHandledMock = vi.fn()
+const updateStatusMock = vi.fn()
 
 vi.mock('@/stores/orderStore', () => ({
   useOrderStore: Object.assign(
@@ -20,19 +19,18 @@ vi.mock('@/stores/orderStore', () => ({
     {
       getState: () => ({
         orders: storeOrders,
-        markHandled: markHandledMock,
-        unmarkHandled: unmarkHandledMock,
+        updateStatus: updateStatusMock,
       }),
     },
   ),
 }))
 
 // --- Server Action mock ---------------------------------------------------
-const markOrderHandledMock = vi.fn()
+const advanceOrderStatusMock = vi.fn()
 const unbumpOrderMock = vi.fn()
 
 vi.mock('@/actions/orderActions', () => ({
-  markOrderHandled: (...args: unknown[]) => markOrderHandledMock(...args),
+  advanceOrderStatus: (...args: unknown[]) => advanceOrderStatusMock(...args),
   unbumpOrder: (...args: unknown[]) => unbumpOrderMock(...args),
 }))
 
@@ -45,7 +43,7 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
     table_id: 'table-uuid-' + Math.random().toString(36).slice(2),
     items: [],
     submitted_at: new Date(Date.now() - 60_000).toISOString(),
-    status: 'received',
+    status: 'preparing',
     is_handled: false,
     handled_at: null,
     total_cents: 0,
@@ -56,9 +54,8 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
 describe('KdsScreen', () => {
   beforeEach(() => {
     useOrderStoreMock.mockReset()
-    markHandledMock.mockReset()
-    unmarkHandledMock.mockReset()
-    markOrderHandledMock.mockReset()
+    updateStatusMock.mockReset()
+    advanceOrderStatusMock.mockReset()
     unbumpOrderMock.mockReset()
     storeOrders.length = 0
     delete (globalThis.navigator as unknown as { wakeLock?: unknown }).wakeLock
@@ -70,7 +67,7 @@ describe('KdsScreen', () => {
   })
 
   // -----------------------------------------------------------------------
-  // Existing tests (preserved, updated render props signature unchanged)
+  // Filter tests (status-based)
   // -----------------------------------------------------------------------
 
   it('renders empty-state when no active orders', () => {
@@ -80,13 +77,35 @@ describe('KdsScreen', () => {
     expect(screen.queryByRole('article')).toBeNull()
   })
 
-  it('renders one card per active order', () => {
+  it('renders one card per preparing order', () => {
     const orders = [makeOrder(), makeOrder(), makeOrder()]
     useOrderStoreMock.mockImplementation((selector) => selector({ orders }))
     render(<KdsScreen tablesById={{}} />)
     const articles = screen.getAllByRole('article')
     expect(articles.length).toBe(3)
     expect(screen.queryByText('Waiting for orders')).toBeNull()
+  })
+
+  it('received order does NOT appear on KDS (only preparing is shown)', () => {
+    const orders = [makeOrder({ status: 'received' })]
+    useOrderStoreMock.mockImplementation((selector) => selector({ orders }))
+    render(<KdsScreen tablesById={{}} />)
+    expect(screen.queryByRole('article')).toBeNull()
+    expect(screen.getByText('Waiting for orders')).toBeTruthy()
+  })
+
+  it('completed order does NOT appear on KDS', () => {
+    const orders = [makeOrder({ status: 'completed', is_handled: true, handled_at: new Date().toISOString() })]
+    useOrderStoreMock.mockImplementation((selector) => selector({ orders }))
+    render(<KdsScreen tablesById={{}} />)
+    expect(screen.queryByRole('article')).toBeNull()
+  })
+
+  it('ready order does NOT appear on KDS (ready means kitchen done)', () => {
+    const orders = [makeOrder({ status: 'ready' })]
+    useOrderStoreMock.mockImplementation((selector) => selector({ orders }))
+    render(<KdsScreen tablesById={{}} />)
+    expect(screen.queryByRole('article')).toBeNull()
   })
 
   it('header counter reads "1 order" (singular) for one active order', () => {
@@ -103,21 +122,16 @@ describe('KdsScreen', () => {
     expect(screen.getByText('3 orders')).toBeTruthy()
   })
 
-  it('filters out handled orders', () => {
-    const active = makeOrder({ is_handled: false })
-    const handled = makeOrder({ is_handled: true, handled_at: new Date().toISOString() })
-    useOrderStoreMock.mockImplementation((selector) => selector({ orders: [active, handled] }))
-    render(<KdsScreen tablesById={{}} />)
-    expect(screen.getAllByRole('article').length).toBe(1)
-    expect(screen.getByText('1 order')).toBeTruthy()
-  })
-
   it('renders heading "Kitchen"', () => {
     useOrderStoreMock.mockImplementation((selector) => selector({ orders: [] }))
     render(<KdsScreen tablesById={{}} />)
     const heading = screen.getByRole('heading', { level: 1 })
     expect(heading.textContent).toBe('Kitchen')
   })
+
+  // -----------------------------------------------------------------------
+  // Wake lock tests (unchanged behavior from Story 8.3)
+  // -----------------------------------------------------------------------
 
   it('requests screen wake lock on mount when supported', async () => {
     const request = vi.fn().mockResolvedValue({
@@ -252,12 +266,12 @@ describe('KdsScreen', () => {
   })
 
   // -----------------------------------------------------------------------
-  // New bump + undo orchestration tests
+  // Bump + undo orchestration tests (updated for advanceOrderStatus)
   // -----------------------------------------------------------------------
 
-  it('bumping a ticket calls markOrderHandled and shows Undo affordance', async () => {
+  it('bumping a ticket calls advanceOrderStatus(orderId, "ready") and shows Undo affordance', async () => {
     vi.useFakeTimers()
-    markOrderHandledMock.mockResolvedValueOnce({ success: true, data: undefined })
+    advanceOrderStatusMock.mockResolvedValueOnce({ success: true, data: undefined })
     const order = makeOrder({ id: 'o1', table_id: 'tid-1' })
     storeOrders.push(order)
     useOrderStoreMock.mockImplementation((selector) => selector({ orders: storeOrders }))
@@ -269,42 +283,42 @@ describe('KdsScreen', () => {
       await Promise.resolve()
     })
 
-    expect(markOrderHandledMock).toHaveBeenCalledWith('o1')
-    expect(markHandledMock).toHaveBeenCalledWith('o1')
+    expect(advanceOrderStatusMock).toHaveBeenCalledWith('o1', 'ready')
+    expect(updateStatusMock).toHaveBeenCalledWith('o1', 'ready')
     expect(screen.getByRole('button', { name: /undo/i })).toBeTruthy()
   })
 
   it('ticket stays rendered during animation, then is removed after safety-net timeout', async () => {
     vi.useFakeTimers()
-    markOrderHandledMock.mockResolvedValueOnce({ success: true, data: undefined })
-    const order = makeOrder({ id: 'o-anim', table_id: 'tid-anim', is_handled: false })
+    advanceOrderStatusMock.mockResolvedValueOnce({ success: true, data: undefined })
+    const order = makeOrder({ id: 'o-anim', table_id: 'tid-anim', status: 'preparing' })
     storeOrders.push(order)
-    // Mutate the store entry so the optimistic markHandled actually flips the
-    // article's is_handled flag — without this, the active-filter assertion
-    // after the 250ms timer would be vacuous (the store is static otherwise).
-    markHandledMock.mockImplementation((id: string) => {
+    // Mutate the store entry so the optimistic updateStatus actually flips the
+    // article's status — without this, the active-filter assertion after the
+    // 250ms timer would be vacuous.
+    updateStatusMock.mockImplementation((id: string, status: string) => {
       const o = storeOrders.find((x) => x.id === id)
-      if (o) o.is_handled = true
+      if (o) o.status = status as Order['status']
     })
     useOrderStoreMock.mockImplementation((selector) => selector({ orders: storeOrders }))
 
     const { container } = render(<KdsScreen tablesById={{ 'tid-anim': 9 }} />)
     fireEvent.click(screen.getByRole('button', { name: /bump/i }))
 
-    // Article should still be in DOM (bumpingIds keeps it visible despite
-    // the optimistic is_handled=true flip).
+    // Article should still be in DOM (bumpingIds keeps it visible despite the
+    // optimistic status='ready' flip).
     expect(container.querySelector('article')).toBeTruthy()
 
     // Advance past the 250ms safety-net: bumpingIds drops the id, the filter
-    // now excludes the order, and the article unmounts.
+    // now excludes the order (status='ready'), and the article unmounts.
     await act(() => { vi.advanceTimersByTime(250) })
     expect(container.querySelector('article')).toBeNull()
   })
 
-  it('bump rollback: failed Server Action restores the order and shows inline error', async () => {
+  it('bump rollback: failed advanceOrderStatus restores to preparing and shows inline error', async () => {
     vi.useFakeTimers()
-    markOrderHandledMock.mockResolvedValueOnce({ success: false, error: 'Network unavailable' })
-    const order = makeOrder({ id: 'o-fail', table_id: 'tid-fail', is_handled: false })
+    advanceOrderStatusMock.mockResolvedValueOnce({ success: false, error: "Tap to retry — bump didn't send" })
+    const order = makeOrder({ id: 'o-fail', table_id: 'tid-fail', status: 'preparing' })
     storeOrders.push(order)
     useOrderStoreMock.mockImplementation((selector) => selector({ orders: storeOrders }))
 
@@ -315,18 +329,18 @@ describe('KdsScreen', () => {
       await Promise.resolve()
     })
 
-    expect(unmarkHandledMock).toHaveBeenCalledWith('o-fail')
+    expect(updateStatusMock).toHaveBeenCalledWith('o-fail', 'preparing')
     expect(screen.queryByRole('button', { name: /undo/i })).toBeNull()
     const alert = screen.getByRole('alert')
     expect(alert.textContent?.includes("bump didn't send")).toBe(true)
   })
 
-  it('tap Undo restores the bumped order and calls unbumpOrder', async () => {
+  it('tap Undo restores the bumped order via updateStatus("preparing") and calls unbumpOrder', async () => {
     vi.useFakeTimers()
-    markOrderHandledMock.mockResolvedValueOnce({ success: true, data: undefined })
+    advanceOrderStatusMock.mockResolvedValueOnce({ success: true, data: undefined })
     unbumpOrderMock.mockResolvedValueOnce({ success: true, data: undefined })
 
-    const order = makeOrder({ id: 'o-undo', table_id: 'tid-undo', is_handled: false })
+    const order = makeOrder({ id: 'o-undo', table_id: 'tid-undo', status: 'preparing' })
     storeOrders.push(order)
     useOrderStoreMock.mockImplementation((selector) => selector({ orders: storeOrders }))
 
@@ -341,23 +355,20 @@ describe('KdsScreen', () => {
     await act(async () => { await Promise.resolve() })
 
     expect(unbumpOrderMock).toHaveBeenCalledWith('o-undo')
-    expect(unmarkHandledMock).toHaveBeenCalled()
+    expect(updateStatusMock).toHaveBeenCalledWith('o-undo', 'preparing')
     expect(screen.queryByRole('button', { name: /undo/i })).toBeNull()
   })
 
-  it('Undo rollback: failed unbumpOrder re-marks handled and shows undo error', async () => {
+  it('Undo rollback: failed unbumpOrder restores to ready via updateStatus and shows undo error', async () => {
     vi.useFakeTimers()
-    markOrderHandledMock.mockResolvedValueOnce({ success: true, data: undefined })
+    advanceOrderStatusMock.mockResolvedValueOnce({ success: true, data: undefined })
     unbumpOrderMock.mockResolvedValueOnce({ success: false, error: "Tap to retry — undo didn't send" })
 
-    // Start with an unhanded order so the bump click is valid. Mutate the store
-    // entry on markHandled so the post-bump `beforeRestore.is_handled === true`
-    // check inside handleUndo triggers the markHandled rollback path.
-    const order = makeOrder({ id: 'o-undo-fail', table_id: 'tid-uf', is_handled: false })
+    const order = makeOrder({ id: 'o-undo-fail', table_id: 'tid-uf', status: 'preparing' })
     storeOrders.push(order)
-    markHandledMock.mockImplementation((id: string) => {
+    updateStatusMock.mockImplementation((id: string, status: string) => {
       const o = storeOrders.find((x) => x.id === id)
-      if (o) o.is_handled = true
+      if (o) o.status = status as Order['status']
     })
     useOrderStoreMock.mockImplementation((selector) => selector({ orders: storeOrders }))
 
@@ -370,17 +381,20 @@ describe('KdsScreen', () => {
     fireEvent.click(undoBtn)
     await act(async () => { await Promise.resolve() })
 
-    // Undo failed, so markHandled fires a second time (rollback re-mark).
-    expect(markHandledMock.mock.calls.length).toBeGreaterThanOrEqual(2)
+    // Undo failed — rollback fires updateStatus(id, 'ready') to restore the ready state
+    const restoreCalls = updateStatusMock.mock.calls.filter(
+      ([id, status]) => id === 'o-undo-fail' && status === 'ready',
+    )
+    expect(restoreCalls.length).toBeGreaterThanOrEqual(1)
     const errorEl = document.querySelector('[role="status"]')
     expect(errorEl?.textContent?.includes("undo didn't send")).toBe(true)
   })
 
   it('Undo affordance disappears after 5 seconds', async () => {
     vi.useFakeTimers()
-    markOrderHandledMock.mockResolvedValueOnce({ success: true, data: undefined })
+    advanceOrderStatusMock.mockResolvedValueOnce({ success: true, data: undefined })
 
-    const order = makeOrder({ id: 'o-timer', table_id: 'tid-timer', is_handled: false })
+    const order = makeOrder({ id: 'o-timer', table_id: 'tid-timer', status: 'preparing' })
     storeOrders.push(order)
     useOrderStoreMock.mockImplementation((selector) => selector({ orders: storeOrders }))
 
@@ -396,31 +410,26 @@ describe('KdsScreen', () => {
 
   it('consecutive bumps track only the most recent for Undo (AC #7)', async () => {
     vi.useFakeTimers()
-    markOrderHandledMock.mockResolvedValue({ success: true, data: undefined })
+    advanceOrderStatusMock.mockResolvedValue({ success: true, data: undefined })
     unbumpOrderMock.mockResolvedValueOnce({ success: true, data: undefined })
 
-    const orderA = makeOrder({ id: 'o-A', table_id: 'tid-A', is_handled: false })
-    const orderB = makeOrder({ id: 'o-B', table_id: 'tid-B', is_handled: false })
+    const orderA = makeOrder({ id: 'o-A', table_id: 'tid-A', status: 'preparing' })
+    const orderB = makeOrder({ id: 'o-B', table_id: 'tid-B', status: 'preparing' })
     storeOrders.push(orderA, orderB)
     useOrderStoreMock.mockImplementation((selector) => selector({ orders: storeOrders }))
 
     render(<KdsScreen tablesById={{ 'tid-A': 1, 'tid-B': 2 }} />)
 
-    // Target specific tickets by aria-label to avoid relying on DOM order stability
-    // after the mock store doesn't actually flip is_handled.
     fireEvent.click(screen.getByRole('button', { name: /bump order for table 1/i }))
     await act(async () => { await Promise.resolve() })
     await act(() => { vi.advanceTimersByTime(250) })
 
-    // Second bump — explicitly target Table 2's bump button
     fireEvent.click(screen.getByRole('button', { name: /bump order for table 2/i }))
     await act(async () => { await Promise.resolve() })
 
-    // Undo affordance should reference Table 2 (most recent)
     const undoAffordance = screen.getByRole('button', { name: /undo/i })
     expect(undoAffordance).toBeTruthy()
 
-    // Click Undo → should call unbumpOrder with orderB's id
     fireEvent.click(undoAffordance)
     await act(async () => { await Promise.resolve() })
     expect(unbumpOrderMock).toHaveBeenCalledWith(orderB.id)
@@ -428,36 +437,29 @@ describe('KdsScreen', () => {
 
   it('consecutive bumps reset the 5s timer (AC #7)', async () => {
     vi.useFakeTimers()
-    markOrderHandledMock.mockResolvedValue({ success: true, data: undefined })
+    advanceOrderStatusMock.mockResolvedValue({ success: true, data: undefined })
 
-    const orderA = makeOrder({ id: 'o-timer-A', table_id: 'tid-tA', is_handled: false })
-    const orderB = makeOrder({ id: 'o-timer-B', table_id: 'tid-tB', is_handled: false })
+    const orderA = makeOrder({ id: 'o-timer-A', table_id: 'tid-tA', status: 'preparing' })
+    const orderB = makeOrder({ id: 'o-timer-B', table_id: 'tid-tB', status: 'preparing' })
     storeOrders.push(orderA, orderB)
     useOrderStoreMock.mockImplementation((selector) => selector({ orders: storeOrders }))
 
     render(<KdsScreen tablesById={{ 'tid-tA': 1, 'tid-tB': 2 }} />)
 
-    // Bump A
     const btns = screen.getAllByRole('button', { name: /bump/i })
     fireEvent.click(btns[0])
     await act(async () => { await Promise.resolve() })
     await act(() => { vi.advanceTimersByTime(250) })
 
-    // Advance 3s
     await act(() => { vi.advanceTimersByTime(3_000) })
 
-    // Bump B (within A's 5s window)
     const btnsAfter = screen.getAllByRole('button', { name: /bump/i })
     fireEvent.click(btnsAfter[0])
     await act(async () => { await Promise.resolve() })
 
-    // Advance another 3s — total 6s since A, but only 3s since B
     await act(() => { vi.advanceTimersByTime(3_000) })
-
-    // Affordance should still be visible (B's timer is fresh — 3s elapsed of 5s window)
     expect(screen.queryByRole('button', { name: /undo/i })).toBeTruthy()
 
-    // Advance 2001ms more — now past B's 5s window
     await act(() => { vi.advanceTimersByTime(2_001) })
     expect(screen.queryByRole('button', { name: /undo/i })).toBeNull()
   })

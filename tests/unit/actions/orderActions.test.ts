@@ -5,7 +5,7 @@ vi.mock('server-only', () => ({}))
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient: vi.fn() }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 
-import { submitOrder, advanceOrderStatus } from '@/actions/orderActions'
+import { submitOrder, advanceOrderStatus, unbumpOrder } from '@/actions/orderActions'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 
@@ -443,7 +443,7 @@ describe('advanceOrderStatus', () => {
     ['received', 'received (never a valid destination)'],
   ])(
     'runtime guard: nextStatus=%s (%s) returns INVALID_TRANSITION without DB access',
-    async (badInput) => {
+    async (badInput, _label) => {
       const client = makeOwnerClient({ currentStatus: 'preparing' })
       vi.mocked(createClient).mockResolvedValue(client as never)
 
@@ -456,4 +456,120 @@ describe('advanceOrderStatus', () => {
       expect(client.from).not.toHaveBeenCalled()
     },
   )
+})
+
+describe('unbumpOrder', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('success path: ready → preparing writes status="preparing", is_handled=false, handled_at=null', async () => {
+    const client = makeOwnerClient({ currentStatus: 'ready' })
+    vi.mocked(createClient).mockResolvedValue(client as never)
+
+    const result = await unbumpOrder('order-1')
+
+    expect(result).toEqual({ success: true, data: undefined })
+    const payload = client._updatePayloads[0] as Record<string, unknown>
+    expect(payload.status).toBe('preparing')
+    expect(payload.is_handled).toBe(false)
+    expect(payload.handled_at).toBeNull()
+    expect(client._updateOptions[0]).toEqual({ count: 'exact' })
+    expect(client._updateEqCalls).toEqual([
+      { col: 'id', val: 'order-1' },
+      { col: 'status', val: 'ready' },
+    ])
+  })
+
+  it('no session returns NOT_AUTHENTICATED and does NOT read status', async () => {
+    const client = makeOwnerClient({ userId: null })
+    vi.mocked(createClient).mockResolvedValue(client as never)
+
+    const result = await unbumpOrder('order-1')
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Not authenticated',
+      code: 'NOT_AUTHENTICATED',
+    })
+    expect(client.from).not.toHaveBeenCalled()
+  })
+
+  it('read returning no row returns NOT_FOUND', async () => {
+    const client = makeOwnerClient({ currentStatus: null })
+    vi.mocked(createClient).mockResolvedValue(client as never)
+
+    const result = await unbumpOrder('order-1')
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Order not found',
+      code: 'NOT_FOUND',
+    })
+    expect(client._updateMock).not.toHaveBeenCalled()
+  })
+
+  it('DB read error returns NOT_FOUND', async () => {
+    const client = makeOwnerClient({ readError: { code: 'PGRST116', message: 'not found' } })
+    vi.mocked(createClient).mockResolvedValue(client as never)
+
+    const result = await unbumpOrder('order-1')
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Order not found',
+      code: 'NOT_FOUND',
+    })
+    expect(client._updateMock).not.toHaveBeenCalled()
+  })
+
+  it.each(['received', 'preparing', 'completed'] as OrderStatusValue[])(
+    'INVALID_TRANSITION when current status is %s (not ready)',
+    async (currentStatus) => {
+      const client = makeOwnerClient({ currentStatus })
+      vi.mocked(createClient).mockResolvedValue(client as never)
+
+      const result = await unbumpOrder('order-1')
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Invalid status transition',
+        code: 'INVALID_TRANSITION',
+      })
+      expect(client._updateMock).not.toHaveBeenCalled()
+    },
+  )
+
+  it('DB error on UPDATE returns UPDATE_FAILED', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const client = makeOwnerClient({ currentStatus: 'ready', updateError: { code: 'XX000', message: 'boom' } })
+    vi.mocked(createClient).mockResolvedValue(client as never)
+
+    const result = await unbumpOrder('order-1')
+
+    expect(result).toEqual({
+      success: false,
+      error: "Tap to retry — undo didn't send",
+      code: 'UPDATE_FAILED',
+    })
+    consoleSpy.mockRestore()
+  })
+
+  it('UPDATE matches 0 rows returns CONCURRENT_UPDATE', async () => {
+    const client = makeOwnerClient({ currentStatus: 'ready', updateCount: 0 })
+    vi.mocked(createClient).mockResolvedValue(client as never)
+
+    const result = await unbumpOrder('order-1')
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Order changed — please refresh',
+      code: 'CONCURRENT_UPDATE',
+    })
+    expect(client._updateMock).toHaveBeenCalledOnce()
+    expect(client._updateEqCalls).toEqual([
+      { col: 'id', val: 'order-1' },
+      { col: 'status', val: 'ready' },
+    ])
+  })
 })

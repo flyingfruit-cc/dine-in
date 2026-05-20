@@ -112,19 +112,34 @@ export async function submitOrder({
 export async function unbumpOrder(orderId: string): Promise<ActionResult<void>> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Not authenticated' }
+  if (!user) return { success: false, error: 'Not authenticated', code: 'NOT_AUTHENTICATED' }
 
-  // Idempotency guard: only unbump rows that ARE currently handled.
-  // Mirrors markOrderHandled's .eq('is_handled', false) safeguard.
-  const { error } = await supabase
+  const { data: current, error: readError } = await supabase
     .from('orders')
-    .update({ is_handled: false, handled_at: null })
+    .select('status')
     .eq('id', orderId)
-    .eq('is_handled', true)
+    .single()
+  if (readError || !current) {
+    return { success: false, error: 'Order not found', code: 'NOT_FOUND' }
+  }
+
+  if ((current.status as OrderStatus) !== 'ready') {
+    return { success: false, error: 'Invalid status transition', code: 'INVALID_TRANSITION' }
+  }
+
+  // Reverse transition: ready → preparing. Atomic with is_handled/handled_at reset.
+  const { error, count } = await supabase
+    .from('orders')
+    .update({ status: 'preparing', is_handled: false, handled_at: null }, { count: 'exact' })
+    .eq('id', orderId)
+    .eq('status', 'ready')
 
   if (error) {
     console.error('[unbumpOrder]', error)
-    return { success: false, error: "Tap to retry — undo didn't send" }
+    return { success: false, error: "Tap to retry — undo didn't send", code: 'UPDATE_FAILED' }
+  }
+  if (count === 0) {
+    return { success: false, error: 'Order changed — please refresh', code: 'CONCURRENT_UPDATE' }
   }
   return { success: true, data: undefined }
 }
@@ -189,27 +204,6 @@ export async function advanceOrderStatus(
     // Optimistic-concurrency filter matched 0 rows: status moved between read and write,
     // row was deleted, or RLS denied the write. UI should refresh to reconcile.
     return { success: false, error: 'Order changed — please refresh', code: 'CONCURRENT_UPDATE' }
-  }
-  return { success: true, data: undefined }
-}
-
-export async function markOrderHandled(orderId: string): Promise<ActionResult<void>> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Not authenticated' }
-
-  // No .select() after UPDATE — avoids 42501/RETURNING issue (see docs/conventions/supabase-clients.md)
-  // owner_update_orders RLS policy gates by restaurant_id = get_my_restaurant_id()
-  // is_handled=false guard makes the UPDATE idempotent: a double-tap can't overwrite handled_at.
-  const { error } = await supabase
-    .from('orders')
-    .update({ is_handled: true, handled_at: new Date().toISOString() })
-    .eq('id', orderId)
-    .eq('is_handled', false)
-
-  if (error) {
-    console.error('[markOrderHandled]', error)
-    return { success: false, error: 'Failed to mark order as handled' }
   }
   return { success: true, data: undefined }
 }

@@ -76,16 +76,86 @@ describe('useOrderStore', () => {
     expect(ids).toEqual(['newer', 'older'])
   })
 
-  it('markHandled sets is_handled true and stamps handled_at on matching order only', () => {
-    useOrderStore.getState().setOrders([
-      makeOrder({ id: 'a' }),
-      makeOrder({ id: 'b' }),
-    ])
-    useOrderStore.getState().markHandled('a')
-    const state = useOrderStore.getState()
-    expect(state.orders.find((o) => o.id === 'a')?.is_handled).toBe(true)
-    expect(state.orders.find((o) => o.id === 'a')?.handled_at).not.toBeNull()
-    expect(state.orders.find((o) => o.id === 'b')?.is_handled).toBe(false)
+  describe('updateStatus', () => {
+    it('sets status only (no is_handled change) for received → preparing', () => {
+      useOrderStore.getState().setOrders([makeOrder({ id: 'a', status: 'received' })])
+      useOrderStore.getState().updateStatus('a', 'preparing')
+      const o = useOrderStore.getState().orders.find((x) => x.id === 'a')!
+      expect(o.status).toBe('preparing')
+      expect(o.is_handled).toBe(false)
+      expect(o.handled_at).toBeNull()
+    })
+
+    it('sets status only (no is_handled change) for preparing → ready', () => {
+      useOrderStore.getState().setOrders([makeOrder({ id: 'a', status: 'preparing' })])
+      useOrderStore.getState().updateStatus('a', 'ready')
+      const o = useOrderStore.getState().orders.find((x) => x.id === 'a')!
+      expect(o.status).toBe('ready')
+      expect(o.is_handled).toBe(false)
+      expect(o.handled_at).toBeNull()
+    })
+
+    it('sets status="completed", is_handled=true, handled_at=ISO string on completing', () => {
+      useOrderStore.getState().setOrders([makeOrder({ id: 'a', status: 'ready' })])
+      useOrderStore.getState().updateStatus('a', 'completed')
+      const o = useOrderStore.getState().orders.find((x) => x.id === 'a')!
+      expect(o.status).toBe('completed')
+      expect(o.is_handled).toBe(true)
+      expect(typeof o.handled_at).toBe('string')
+      expect(o.handled_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+    })
+
+    it('resets is_handled=false, handled_at=null when reverting from ready to preparing', () => {
+      useOrderStore.getState().setOrders([
+        makeOrder({ id: 'a', status: 'ready', is_handled: false, handled_at: null }),
+      ])
+      useOrderStore.getState().updateStatus('a', 'preparing')
+      const o = useOrderStore.getState().orders.find((x) => x.id === 'a')!
+      expect(o.status).toBe('preparing')
+      expect(o.is_handled).toBe(false)
+      expect(o.handled_at).toBeNull()
+    })
+
+    it('resets is_handled=false, handled_at=null when reverting from completed to preparing', () => {
+      useOrderStore.getState().setOrders([
+        makeOrder({ id: 'a', status: 'completed', is_handled: true, handled_at: '2026-05-20T10:00:00Z' }),
+      ])
+      useOrderStore.getState().updateStatus('a', 'preparing')
+      const o = useOrderStore.getState().orders.find((x) => x.id === 'a')!
+      expect(o.status).toBe('preparing')
+      expect(o.is_handled).toBe(false)
+      expect(o.handled_at).toBeNull()
+    })
+
+    it('resets is_handled=false, handled_at=null when reverting from completed to ready (rollback of failed Mark completed)', () => {
+      // The is_handled ⇔ status='completed' invariant must hold for ANY non-completed
+      // target, not just 'preparing'. Optimistic completion → failure → rollback to
+      // 'ready' must clear is_handled and handled_at.
+      useOrderStore.getState().setOrders([
+        makeOrder({ id: 'a', status: 'completed', is_handled: true, handled_at: '2026-05-20T10:00:00Z' }),
+      ])
+      useOrderStore.getState().updateStatus('a', 'ready')
+      const o = useOrderStore.getState().orders.find((x) => x.id === 'a')!
+      expect(o.status).toBe('ready')
+      expect(o.is_handled).toBe(false)
+      expect(o.handled_at).toBeNull()
+    })
+
+    it('is a no-op when the orderId does not exist', () => {
+      useOrderStore.getState().setOrders([makeOrder({ id: 'a' })])
+      useOrderStore.getState().updateStatus('nonexistent', 'preparing')
+      expect(useOrderStore.getState().orders).toHaveLength(1)
+      expect(useOrderStore.getState().orders[0].status).toBe('received')
+    })
+
+    it('does not touch other orders in the array', () => {
+      useOrderStore.getState().setOrders([
+        makeOrder({ id: 'a', status: 'received', submitted_at: '2026-05-18T12:00:00Z' }),
+        makeOrder({ id: 'b', status: 'received', submitted_at: '2026-05-18T11:00:00Z' }),
+      ])
+      useOrderStore.getState().updateStatus('a', 'preparing')
+      expect(useOrderStore.getState().orders.find((o) => o.id === 'b')?.status).toBe('received')
+    })
   })
 
   it('setRealtimeReady toggles the flag', () => {

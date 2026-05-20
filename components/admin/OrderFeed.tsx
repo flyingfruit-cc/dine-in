@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useOrderStore } from '@/stores/orderStore'
 import { OrderCard } from '@/components/admin/OrderCard'
-import { markOrderHandled } from '@/actions/orderActions'
+import { advanceOrderStatus } from '@/actions/orderActions'
+import type { OrderStatus } from '@/types/app'
 
 type Tab = 'active' | 'handled' | 'all'
 
@@ -23,26 +24,74 @@ const TAB_LABELS: Record<Tab, string> = {
   all: 'All',
 }
 
+const ERROR_MESSAGE: Record<string, string> = {
+  CONCURRENT_UPDATE: 'Order changed — please refresh',
+  INVALID_TRANSITION: 'Order state changed — please refresh',
+  UPDATE_FAILED: "Tap to retry — update didn't send",
+  NOT_AUTHENTICATED: 'Session expired — please log in',
+  NOT_FOUND: 'Order not found — please refresh',
+}
+
+function errorMessageFor(code: string | undefined): string {
+  return (code && ERROR_MESSAGE[code]) || "Tap to retry — update didn't send"
+}
+
 export function OrderFeed({ tablesById }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('active')
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const inFlightRef = useRef<Set<string>>(new Set())
   const orders = useOrderStore((s) => s.orders)
   const isRealtimeReady = useOrderStore((s) => s.isRealtimeReady)
   const readyAttr = isRealtimeReady ? 'true' : 'false'
 
   const filteredOrders =
     activeTab === 'active'
-      ? orders.filter((o) => !o.is_handled)
+      ? orders.filter((o) => o.status !== 'completed')
       : activeTab === 'handled'
-        ? orders.filter((o) => o.is_handled)
+        ? orders.filter((o) => o.status === 'completed')
         : orders
 
-  async function handleMarkHandled(orderId: string) {
-    useOrderStore.getState().markHandled(orderId) // optimistic update
-    const result = await markOrderHandled(orderId) // persist to DB; Realtime UPDATE reconciles
-    if (!result.success) {
-      // Optimistic UI already shows handled; surface failure to operators via logs.
-      console.error('[markOrderHandled]', result.error)
+  async function handleAdvance(orderId: string, nextStatus: OrderStatus) {
+    if (inFlightRef.current.has(orderId)) return
+    inFlightRef.current.add(orderId)
+
+    const prev = useOrderStore.getState().orders.find((o) => o.id === orderId)
+    if (!prev) {
+      inFlightRef.current.delete(orderId)
+      return
     }
+
+    useOrderStore.getState().updateStatus(orderId, nextStatus)
+    setErrors((e) => {
+      if (!(orderId in e)) return e
+      const { [orderId]: _, ...rest } = e
+      return rest
+    })
+
+    try {
+      const result = await advanceOrderStatus(orderId, nextStatus)
+      if (!result.success) {
+        // State-desync codes (CONCURRENT_UPDATE, INVALID_TRANSITION) mean the
+        // server has a truth we don't — Realtime will deliver it. Rolling back
+        // to prev.status would stomp a Realtime echo that may have already
+        // arrived during the await. For transport/identity codes, no Realtime
+        // echo is coming, so we must roll back the optimistic write ourselves.
+        if (result.code !== 'CONCURRENT_UPDATE' && result.code !== 'INVALID_TRANSITION') {
+          useOrderStore.getState().updateStatus(orderId, prev.status)
+        }
+        setErrors((e) => ({ ...e, [orderId]: errorMessageFor(result.code) }))
+      }
+    } finally {
+      inFlightRef.current.delete(orderId)
+    }
+  }
+
+  function dismissError(orderId: string) {
+    setErrors((e) => {
+      if (!(orderId in e)) return e
+      const { [orderId]: _, ...rest } = e
+      return rest
+    })
   }
 
   return (
@@ -84,7 +133,9 @@ export function OrderFeed({ tablesById }: Props) {
                 <OrderCard
                   order={order}
                   tableNumber={tableNumber}
-                  onMarkHandled={() => handleMarkHandled(order.id)}
+                  onAdvance={(next) => handleAdvance(order.id, next)}
+                  errorMessage={errors[order.id] ?? null}
+                  onErrorDismiss={() => dismissError(order.id)}
                 />
               </li>
             )

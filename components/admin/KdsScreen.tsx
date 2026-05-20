@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useOrderStore } from '@/stores/orderStore'
 import { OrderTicket } from '@/components/admin/OrderTicket'
-import { markOrderHandled, unbumpOrder } from '@/actions/orderActions'
+import { advanceOrderStatus, unbumpOrder } from '@/actions/orderActions'
 
 interface Props {
   tablesById: Record<string, number>
@@ -54,10 +54,10 @@ export function KdsScreen({ tablesById }: Props) {
     }
   }, [])
 
-  // Keep mid-animation tickets visible even after the optimistic is_handled=true flip.
+  // Keep mid-animation tickets visible even after the optimistic status='ready' flip.
   // Without bumpingIds.has(o.id), the article unmounts before the slide-out plays.
   const activeOrders = orders
-    .filter((o) => !o.is_handled || bumpingIds.has(o.id))
+    .filter((o) => o.status === 'preparing' || bumpingIds.has(o.id))
     .slice()
     .sort((a, b) => {
       const ta = Date.parse(a.submitted_at)
@@ -97,12 +97,12 @@ export function KdsScreen({ tablesById }: Props) {
     }, 250)
     safetyTimersRef.current.set(orderId, timer)
 
-    useOrderStore.getState().markHandled(orderId)
+    useOrderStore.getState().updateStatus(orderId, 'ready')
     setRecentlyBumped({ id: orderId, tableLabel })
     if (bumpError?.id === orderId) setBumpError(null)
 
     try {
-      const result = await markOrderHandled(orderId)
+      const result = await advanceOrderStatus(orderId, 'ready')
       if (!result.success) {
         setBumpingIds((prev) => {
           const next = new Set(prev)
@@ -117,7 +117,12 @@ export function KdsScreen({ tablesById }: Props) {
           return
         }
 
-        useOrderStore.getState().unmarkHandled(orderId)
+        // State-desync codes mean the server has a truth Realtime will deliver;
+        // rolling back would stomp the just-arrived echo. Only roll back on
+        // transport/identity codes where no echo is coming.
+        if (result.code !== 'CONCURRENT_UPDATE' && result.code !== 'INVALID_TRANSITION') {
+          useOrderStore.getState().updateStatus(orderId, 'preparing')
+        }
         // Only clear the banner if it still points at THIS id (a newer bump may have claimed it).
         setRecentlyBumped((cur) => (cur?.id === orderId ? null : cur))
         setBumpError({ id: orderId, message: "Tap to retry — bump didn't send" })
@@ -138,14 +143,23 @@ export function KdsScreen({ tablesById }: Props) {
     // Mark this id as claimed by Undo so a still-pending bump rollback knows to skip.
     undoClaimedRef.current.add(orderId)
 
-    useOrderStore.getState().unmarkHandled(orderId)
+    useOrderStore.getState().updateStatus(orderId, 'preparing')
     setRecentlyBumped(null)
     setUndoError(null)
 
     try {
       const result = await unbumpOrder(orderId)
       if (!result.success) {
-        if (beforeRestore?.is_handled) useOrderStore.getState().markHandled(orderId)
+        // Same state-desync rule as handleBump: trust Realtime to reconcile
+        // CONCURRENT_UPDATE / INVALID_TRANSITION; only roll back on transport
+        // / identity codes.
+        if (
+          beforeRestore?.status === 'ready' &&
+          result.code !== 'CONCURRENT_UPDATE' &&
+          result.code !== 'INVALID_TRANSITION'
+        ) {
+          useOrderStore.getState().updateStatus(orderId, 'ready')
+        }
         setUndoError(result.error || "Tap to retry — undo didn't send")
       }
     } finally {
