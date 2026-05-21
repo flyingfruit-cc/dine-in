@@ -109,7 +109,7 @@ export async function updateRestaurantLanguages(
   if (!uniqueLanguages.includes('en')) {
     return { success: false, error: 'English is required', code: 'INVALID_LANGUAGE' }
   }
-  if (!uniqueLanguages.includes(default_language)) {
+  if (!isAllowedLanguage(default_language) || !uniqueLanguages.includes(default_language)) {
     return { success: false, error: 'Default language must be one of the enabled languages', code: 'INVALID_LANGUAGE' }
   }
 
