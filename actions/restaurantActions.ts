@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { ActionResult } from '@/types/app'
+import { ALLOWED_LANGUAGES, isAllowedLanguage } from '@/utils/languages'
 
 async function getAuthContext() {
   const supabase = await createClient()
@@ -87,5 +88,39 @@ export async function recordQrPrint(): Promise<ActionResult<void>> {
     .eq('id', restaurantId)
 
   if (error) return { success: false, error: error.message }
+  return { success: true, data: undefined }
+}
+
+export async function updateRestaurantLanguages(
+  supported_languages: string[],
+  default_language: string,
+): Promise<ActionResult<void>> {
+  const { supabase, user, restaurantId } = await getAuthContext()
+  if (!user) return { success: false, error: 'Not authenticated', code: 'NOT_AUTHENTICATED' }
+  if (!restaurantId) return { success: false, error: 'No restaurant found', code: 'NOT_FOUND' }
+
+  if (!Array.isArray(supported_languages) || !supported_languages.every(isAllowedLanguage)) {
+    return { success: false, error: 'Invalid language selection', code: 'INVALID_LANGUAGE' }
+  }
+  const uniqueLanguages = Array.from(new Set(supported_languages))
+  if (uniqueLanguages.length < 1 || uniqueLanguages.length > ALLOWED_LANGUAGES.length) {
+    return { success: false, error: 'Invalid language selection', code: 'INVALID_LANGUAGE' }
+  }
+  if (!uniqueLanguages.includes('en')) {
+    return { success: false, error: 'English is required', code: 'INVALID_LANGUAGE' }
+  }
+  if (!uniqueLanguages.includes(default_language)) {
+    return { success: false, error: 'Default language must be one of the enabled languages', code: 'INVALID_LANGUAGE' }
+  }
+
+  const { error } = await supabase
+    .from('restaurants')
+    .update({ supported_languages: uniqueLanguages, default_language })
+    .eq('id', restaurantId)
+
+  if (error) {
+    console.error('[updateRestaurantLanguages]', error)
+    return { success: false, error: 'Save failed — tap to retry', code: 'UPDATE_FAILED' }
+  }
   return { success: true, data: undefined }
 }

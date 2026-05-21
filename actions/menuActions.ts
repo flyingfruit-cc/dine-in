@@ -4,8 +4,14 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { ActionResult, Category, MenuItem, MenuItemCreate, MenuItemUpdate, VariantGroup } from '@/types/app'
 
+type TranslationPayload = { name: string; description?: string | null }
+
 function toMenuItem(row: Record<string, unknown>): MenuItem {
-  return { ...row, variants: (row.variants ?? []) as VariantGroup[] } as MenuItem
+  return {
+    ...row,
+    variants: (row.variants ?? []) as VariantGroup[],
+    translations: (row.translations ?? {}) as Record<string, { name: string; description?: string }>,
+  } as MenuItem
 }
 
 async function getAuthContext() {
@@ -229,4 +235,48 @@ export async function reorderMenuItems(
   const firstError = results.find((r) => r.error)?.error
   if (firstError) return { success: false, error: firstError.message }
   return { success: true, data: undefined }
+}
+
+export async function updateMenuItemTranslation(
+  itemId: string,
+  langCode: string,
+  payload: TranslationPayload,
+): Promise<ActionResult<{ item: MenuItem }>> {
+  const { supabase, user, restaurantId } = await getAuthContext()
+  if (!user) return { success: false, error: 'Not authenticated', code: 'NOT_AUTHENTICATED' }
+  if (!restaurantId) return { success: false, error: 'No restaurant found', code: 'NOT_FOUND' }
+
+  const trimmedName = payload.name.trim()
+  if (!trimmedName) {
+    return { success: false, error: 'Translation name cannot be empty', code: 'INVALID_NAME' }
+  }
+
+  const { data: restaurant, error: restError } = await supabase
+    .from('restaurants')
+    .select('supported_languages')
+    .eq('id', restaurantId)
+    .single()
+  if (restError || !restaurant) {
+    return { success: false, error: 'Restaurant not found', code: 'NOT_FOUND' }
+  }
+  if (!(restaurant.supported_languages as string[]).includes(langCode)) {
+    return { success: false, error: 'Language not enabled for this restaurant', code: 'INVALID_LANGUAGE' }
+  }
+
+  const jsonbPayload: { name: string; description?: string } = { name: trimmedName }
+  const desc = payload.description?.trim()
+  if (desc) jsonbPayload.description = desc
+
+  const { data: rows, error } = await supabase.rpc('update_menu_item_translation', {
+    item_id: itemId,
+    lang_code: langCode,
+    payload: jsonbPayload,
+  })
+  if (error) {
+    console.error('[updateMenuItemTranslation]', error)
+    return { success: false, error: 'Save failed — tap to retry', code: 'UPDATE_FAILED' }
+  }
+  const row = Array.isArray(rows) ? rows[0] : null
+  if (!row) return { success: false, error: 'Item not found', code: 'NOT_FOUND' }
+  return { success: true, data: { item: toMenuItem(row as Record<string, unknown>) } }
 }

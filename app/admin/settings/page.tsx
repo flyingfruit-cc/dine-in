@@ -5,7 +5,7 @@ export default async function SettingsPage() {
   const supabase = await createClient()
   const { data: restaurant } = await supabase
     .from('restaurants')
-    .select('name, slug')
+    .select('name, slug, supported_languages, default_language')
     .single()
 
   return (
@@ -15,6 +15,8 @@ export default async function SettingsPage() {
         <RestaurantSettings
           name={restaurant?.name ?? ''}
           slug={restaurant?.slug ?? ''}
+          supportedLanguages={restaurant?.supported_languages ?? ['en']}
+          defaultLanguage={restaurant?.default_language ?? 'en'}
         />
       </div>
     </main>

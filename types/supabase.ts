@@ -55,6 +55,7 @@ export type Database = {
           name: string
           price_cents: number
           restaurant_id: string
+          translations: Json
           variants: Json
         }
         Insert: {
@@ -68,6 +69,7 @@ export type Database = {
           name: string
           price_cents?: number
           restaurant_id: string
+          translations?: Json
           variants?: Json
         }
         Update: {
@@ -81,6 +83,7 @@ export type Database = {
           name?: string
           price_cents?: number
           restaurant_id?: string
+          translations?: Json
           variants?: Json
         }
         Relationships: [
@@ -180,30 +183,36 @@ export type Database = {
       restaurants: {
         Row: {
           created_at: string
+          default_language: string
           has_previewed_menu: boolean
           has_printed_qr: boolean
           id: string
           is_published: boolean
           name: string
           slug: string
+          supported_languages: string[]
         }
         Insert: {
           created_at?: string
+          default_language?: string
           has_previewed_menu?: boolean
           has_printed_qr?: boolean
           id?: string
           is_published?: boolean
           name: string
           slug: string
+          supported_languages?: string[]
         }
         Update: {
           created_at?: string
+          default_language?: string
           has_previewed_menu?: boolean
           has_printed_qr?: boolean
           id?: string
           is_published?: boolean
           name?: string
           slug?: string
+          supported_languages?: string[]
         }
         Relationships: []
       }
@@ -260,6 +269,29 @@ export type Database = {
       get_restaurant_analytics: {
         Args: { p_end: string; p_restaurant_id: string; p_start: string }
         Returns: Json
+      }
+      update_menu_item_translation: {
+        Args: { item_id: string; lang_code: string; payload: Json }
+        Returns: {
+          availability_schedule: Json | null
+          category_id: string | null
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          image_url: string | null
+          name: string
+          price_cents: number
+          restaurant_id: string
+          translations: Json
+          variants: Json
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "menu_items"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
     }
     Enums: {

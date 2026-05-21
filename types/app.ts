@@ -63,6 +63,7 @@ export interface MenuItem {
   variants: VariantGroup[]
   availability_schedule: AvailabilitySchedule | null
   created_at: string
+  translations: Record<string, { name: string; description?: string }>
 }
 
 export interface MenuItemCreate {
@@ -83,6 +84,12 @@ export interface MenuItemUpdate {
   display_order?: number
   variants?: VariantGroup[]
   availability_schedule?: AvailabilitySchedule | null
+  translations?: Record<string, { name: string; description?: string }>
+}
+
+export interface RestaurantLanguageSettings {
+  supported_languages: string[]
+  default_language: string
 }
 
 export interface SelectedVariant {

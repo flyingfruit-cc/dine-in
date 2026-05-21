@@ -16,6 +16,7 @@ const baseItem: MenuItem = {
   variants: [],
   availability_schedule: null,
   created_at: '2026-05-17',
+  translations: {},
 }
 
 afterEach(() => cleanup())

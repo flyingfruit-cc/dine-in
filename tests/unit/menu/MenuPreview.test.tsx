@@ -28,6 +28,7 @@ const items = [
     variants: [],
     availability_schedule: null,
     created_at: '2026-05-10',
+    translations: {},
   },
   {
     id: 'item-2',
@@ -41,6 +42,7 @@ const items = [
     variants: [{ id: 'v-1', name: 'Size', options: [] }],
     availability_schedule: null,
     created_at: '2026-05-10',
+    translations: {},
   },
 ]
 

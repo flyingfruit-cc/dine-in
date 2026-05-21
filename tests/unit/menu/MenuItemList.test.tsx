@@ -20,8 +20,8 @@ const categories = [
 ]
 
 const items = [
-  { id: 'item-1', restaurant_id: 'rest-1', category_id: 'cat-1', name: 'Soup', description: null, price_cents: 800, image_url: null, display_order: 0, variants: [], availability_schedule: null, created_at: '2026-05-10' },
-  { id: 'item-2', restaurant_id: 'rest-1', category_id: 'cat-2', name: 'Steak', description: null, price_cents: 2500, image_url: null, display_order: 0, variants: [], availability_schedule: null, created_at: '2026-05-10' },
+  { id: 'item-1', restaurant_id: 'rest-1', category_id: 'cat-1', name: 'Soup', description: null, price_cents: 800, image_url: null, display_order: 0, variants: [], availability_schedule: null, created_at: '2026-05-10', translations: {} },
+  { id: 'item-2', restaurant_id: 'rest-1', category_id: 'cat-2', name: 'Steak', description: null, price_cents: 2500, image_url: null, display_order: 0, variants: [], availability_schedule: null, created_at: '2026-05-10', translations: {} },
 ]
 
 describe('MenuItemList', () => {

@@ -29,6 +29,7 @@ const baseItem: MenuItem = {
   variants: [],
   availability_schedule: null,
   created_at: '2026-05-18',
+  translations: {},
 }
 
 const itemWithVariants: MenuItem = {

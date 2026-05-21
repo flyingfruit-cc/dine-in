@@ -8,6 +8,13 @@ vi.mock('@/actions/menuActions', () => ({
   createMenuItem: vi.fn(),
   updateMenuItem: vi.fn(),
   uploadMenuItemImage: vi.fn(),
+  updateMenuItemTranslation: vi.fn(),
+}))
+
+vi.mock('@/components/admin/TranslationCard', () => ({
+  TranslationCard: ({ langCode }: { langCode: string }) => (
+    <div data-testid={`translation-card-${langCode}`}>mock-translation-card-{langCode}</div>
+  ),
 }))
 
 vi.mock('next/navigation', () => ({ useRouter: vi.fn(() => ({ push: mockPush })) }))
@@ -57,9 +64,11 @@ const sampleItem = {
   description: 'Hot soup',
   price_cents: 800,
   image_url: null,
+  display_order: 0,
   variants: [],
   availability_schedule: null,
   created_at: '2026-05-10',
+  translations: {},
 }
 
 describe('MenuItemForm', () => {
@@ -67,7 +76,7 @@ describe('MenuItemForm', () => {
   afterEach(() => cleanup())
 
   it('renders all fields for create mode', () => {
-    render(<MenuItemForm categories={sampleCategories} />)
+    render(<MenuItemForm categories={sampleCategories} supportedLanguages={['en']} defaultLanguage="en" />)
     expect(screen.getByPlaceholderText(/item name/i)).toBeDefined()
     expect(screen.getByPlaceholderText(/description/i)).toBeDefined()
     expect(screen.getByLabelText(/price/i)).toBeDefined()
@@ -75,14 +84,14 @@ describe('MenuItemForm', () => {
   })
 
   it('pre-populates fields in edit mode', () => {
-    render(<MenuItemForm categories={sampleCategories} item={sampleItem} />)
+    render(<MenuItemForm categories={sampleCategories} item={sampleItem} supportedLanguages={['en']} defaultLanguage="en" />)
     expect(screen.getByDisplayValue('Soup')).toBeDefined()
     expect(screen.getByDisplayValue('Hot soup')).toBeDefined()
     expect(screen.getByDisplayValue('8.00')).toBeDefined()
   })
 
   it('shows currency prefix', () => {
-    render(<MenuItemForm categories={sampleCategories} />)
+    render(<MenuItemForm categories={sampleCategories} supportedLanguages={['en']} defaultLanguage="en" />)
     expect(screen.getByText('$')).toBeDefined()
   })
 
@@ -91,7 +100,7 @@ describe('MenuItemForm', () => {
     const newItem = { ...sampleItem, id: 'new-item-1', name: 'Pizza' }
     mockCreate.mockResolvedValue({ success: true, data: { item: newItem } })
 
-    render(<MenuItemForm categories={sampleCategories} />)
+    render(<MenuItemForm categories={sampleCategories} supportedLanguages={['en']} defaultLanguage="en" />)
     fireEvent.change(screen.getByPlaceholderText(/item name/i), { target: { value: 'Pizza' } })
 
     await act(async () => { await vi.runAllTimersAsync() })
@@ -106,7 +115,7 @@ describe('MenuItemForm', () => {
     const newItem = { ...sampleItem, id: 'new-item-1', name: 'Pizza' }
     mockCreate.mockResolvedValue({ success: true, data: { item: newItem } })
 
-    render(<MenuItemForm categories={sampleCategories} />)
+    render(<MenuItemForm categories={sampleCategories} supportedLanguages={['en']} defaultLanguage="en" />)
     fireEvent.change(screen.getByPlaceholderText(/item name/i), { target: { value: 'Pizza' } })
 
     await act(async () => { await vi.runAllTimersAsync() })
@@ -121,7 +130,7 @@ describe('MenuItemForm', () => {
     const updated = { ...sampleItem, name: 'Updated Soup' }
     mockUpdate.mockResolvedValue({ success: true, data: { item: updated } })
 
-    render(<MenuItemForm categories={sampleCategories} item={sampleItem} />)
+    render(<MenuItemForm categories={sampleCategories} item={sampleItem} supportedLanguages={['en']} defaultLanguage="en" />)
     fireEvent.change(screen.getByDisplayValue('Soup'), { target: { value: 'Updated Soup' } })
 
     // advanceTimersByTime(2000) fires debounce; act drains microtasks so mock resolves
@@ -136,7 +145,7 @@ describe('MenuItemForm', () => {
     vi.useFakeTimers()
     mockCreate.mockResolvedValue({ success: false, error: 'Unable to save — tap to try again' })
 
-    render(<MenuItemForm categories={sampleCategories} />)
+    render(<MenuItemForm categories={sampleCategories} supportedLanguages={['en']} defaultLanguage="en" />)
     fireEvent.change(screen.getByPlaceholderText(/item name/i), { target: { value: 'Bad item' } })
 
     await act(async () => { await vi.runAllTimersAsync() })
@@ -151,7 +160,7 @@ describe('MenuItemForm', () => {
     mockUpdate.mockResolvedValue({ success: true, data: { item: sampleItem } })
     mockUpload.mockResolvedValue({ success: false, error: 'Upload failed' })
 
-    render(<MenuItemForm categories={sampleCategories} item={sampleItem} />)
+    render(<MenuItemForm categories={sampleCategories} item={sampleItem} supportedLanguages={['en']} defaultLanguage="en" />)
 
     const fileInput = screen.getByLabelText(/image/i)
     const file = new File(['data'], 'photo.jpg', { type: 'image/jpeg' })
@@ -167,7 +176,7 @@ describe('MenuItemForm', () => {
 
   it('does not auto-save when name is empty', async () => {
     vi.useFakeTimers()
-    render(<MenuItemForm categories={sampleCategories} />)
+    render(<MenuItemForm categories={sampleCategories} supportedLanguages={['en']} defaultLanguage="en" />)
     // don't type a name, just change description
     fireEvent.change(screen.getByPlaceholderText(/description/i), { target: { value: 'Some desc' } })
     await act(async () => { await vi.runAllTimersAsync() })
@@ -180,7 +189,7 @@ describe('MenuItemForm', () => {
     const updated = { ...sampleItem, name: 'Updated Soup' }
     mockUpdate.mockResolvedValue({ success: true, data: { item: updated } })
 
-    render(<MenuItemForm categories={sampleCategories} item={sampleItem} />)
+    render(<MenuItemForm categories={sampleCategories} item={sampleItem} supportedLanguages={['en']} defaultLanguage="en" />)
     fireEvent.change(screen.getByDisplayValue('Soup'), { target: { value: 'Updated Soup' } })
 
     await act(async () => { await vi.runAllTimersAsync() })
@@ -192,7 +201,7 @@ describe('MenuItemForm', () => {
   })
 
   it('shows image preview when file is selected', async () => {
-    render(<MenuItemForm categories={sampleCategories} />)
+    render(<MenuItemForm categories={sampleCategories} supportedLanguages={['en']} defaultLanguage="en" />)
     const fileInput = screen.getByLabelText(/image/i)
     const file = new File(['image data'], 'photo.jpg', { type: 'image/jpeg' })
     fireEvent.change(fileInput, { target: { files: [file] } })
@@ -203,7 +212,7 @@ describe('MenuItemForm', () => {
   })
 
   it('shows navigation CTAs in edit mode', () => {
-    render(<MenuItemForm categories={sampleCategories} item={sampleItem} />)
+    render(<MenuItemForm categories={sampleCategories} item={sampleItem} supportedLanguages={['en']} defaultLanguage="en" />)
     const addLink = screen.getByRole('link', { name: /add another item/i })
     const backLink = screen.getByRole('link', { name: /back to menu/i })
     expect((addLink as HTMLAnchorElement).href).toContain('/admin/menu/new')
@@ -211,27 +220,27 @@ describe('MenuItemForm', () => {
   })
 
   it('does not show navigation CTAs in create mode', () => {
-    render(<MenuItemForm categories={sampleCategories} />)
+    render(<MenuItemForm categories={sampleCategories} supportedLanguages={['en']} defaultLanguage="en" />)
     expect(screen.queryByRole('link', { name: /add another item/i })).toBeNull()
     expect(screen.queryByRole('link', { name: /back to menu/i })).toBeNull()
   })
 
   it('shows remove image button when preview is present', () => {
     const itemWithImage = { ...sampleItem, image_url: 'https://cdn.example.com/img.jpg' }
-    render(<MenuItemForm categories={sampleCategories} item={itemWithImage} />)
+    render(<MenuItemForm categories={sampleCategories} item={itemWithImage} supportedLanguages={['en']} defaultLanguage="en" />)
     expect(screen.getByRole('button', { name: /remove image/i })).toBeDefined()
   })
 
   it('clears image preview when remove image is clicked', () => {
     const itemWithImage = { ...sampleItem, image_url: 'https://cdn.example.com/img.jpg' }
-    render(<MenuItemForm categories={sampleCategories} item={itemWithImage} />)
+    render(<MenuItemForm categories={sampleCategories} item={itemWithImage} supportedLanguages={['en']} defaultLanguage="en" />)
     fireEvent.click(screen.getByRole('button', { name: /remove image/i }))
     expect(screen.queryByRole('img')).toBeNull()
     expect(screen.queryByRole('button', { name: /remove image/i })).toBeNull()
   })
 
   it('renders VariantEditor section', () => {
-    render(<MenuItemForm categories={sampleCategories} />)
+    render(<MenuItemForm categories={sampleCategories} supportedLanguages={['en']} defaultLanguage="en" />)
     expect(screen.getByRole('button', { name: /mock-variant-change/i })).toBeDefined()
   })
 
@@ -240,7 +249,7 @@ describe('MenuItemForm', () => {
     const newItem = { ...sampleItem, id: 'new-item-1', name: 'Pizza' }
     mockCreate.mockResolvedValue({ success: true, data: { item: newItem } })
 
-    render(<MenuItemForm categories={sampleCategories} />)
+    render(<MenuItemForm categories={sampleCategories} supportedLanguages={['en']} defaultLanguage="en" />)
     fireEvent.change(screen.getByPlaceholderText(/item name/i), { target: { value: 'Pizza' } })
     fireEvent.click(screen.getByRole('button', { name: /mock-variant-change/i }))
 
@@ -261,7 +270,7 @@ describe('MenuItemForm', () => {
     const updated = { ...sampleItem, name: 'Updated Soup' }
     mockUpdate.mockResolvedValue({ success: true, data: { item: updated } })
 
-    render(<MenuItemForm categories={sampleCategories} item={sampleItem} />)
+    render(<MenuItemForm categories={sampleCategories} item={sampleItem} supportedLanguages={['en']} defaultLanguage="en" />)
     fireEvent.click(screen.getByRole('button', { name: /mock-variant-change/i }))
 
     await act(async () => { await vi.runAllTimersAsync() })
@@ -274,7 +283,7 @@ describe('MenuItemForm', () => {
   })
 
   it('renders AvailabilitySchedule section', () => {
-    render(<MenuItemForm categories={sampleCategories} />)
+    render(<MenuItemForm categories={sampleCategories} supportedLanguages={['en']} defaultLanguage="en" />)
     expect(screen.getByRole('button', { name: /mock-availability-change/i })).toBeDefined()
   })
 
@@ -283,7 +292,7 @@ describe('MenuItemForm', () => {
     const newItem = { ...sampleItem, id: 'new-item-1', name: 'Pizza' }
     mockCreate.mockResolvedValue({ success: true, data: { item: newItem } })
 
-    render(<MenuItemForm categories={sampleCategories} />)
+    render(<MenuItemForm categories={sampleCategories} supportedLanguages={['en']} defaultLanguage="en" />)
     fireEvent.change(screen.getByPlaceholderText(/item name/i), { target: { value: 'Pizza' } })
     fireEvent.click(screen.getByRole('button', { name: /mock-availability-change/i }))
 
@@ -304,7 +313,7 @@ describe('MenuItemForm', () => {
     const updated = { ...sampleItem, name: 'Updated Soup' }
     mockUpdate.mockResolvedValue({ success: true, data: { item: updated } })
 
-    render(<MenuItemForm categories={sampleCategories} item={sampleItem} />)
+    render(<MenuItemForm categories={sampleCategories} item={sampleItem} supportedLanguages={['en']} defaultLanguage="en" />)
     fireEvent.click(screen.getByRole('button', { name: /mock-availability-change/i }))
 
     await act(async () => { await vi.runAllTimersAsync() })
@@ -321,7 +330,7 @@ describe('MenuItemForm', () => {
     const itemWithImage = { ...sampleItem, image_url: 'https://cdn.example.com/img.jpg' }
     mockUpdate.mockResolvedValue({ success: true, data: { item: itemWithImage } })
 
-    render(<MenuItemForm categories={sampleCategories} item={itemWithImage} />)
+    render(<MenuItemForm categories={sampleCategories} item={itemWithImage} supportedLanguages={['en']} defaultLanguage="en" />)
     fireEvent.click(screen.getByRole('button', { name: /remove image/i }))
 
     await act(async () => { vi.advanceTimersByTime(2000) })
@@ -329,5 +338,30 @@ describe('MenuItemForm', () => {
     expect(mockUpdate).toHaveBeenCalledWith('item-1', expect.objectContaining({ image_url: null }))
 
     vi.useRealTimers()
+  })
+
+  it('Translations section is hidden in create mode (no item.id)', () => {
+    render(<MenuItemForm categories={sampleCategories} supportedLanguages={['en', 'es']} defaultLanguage="en" />)
+    expect(screen.queryByText('Translations')).toBeNull()
+  })
+
+  it('Translations section is hidden when restaurant has no non-default languages', () => {
+    render(<MenuItemForm categories={sampleCategories} item={sampleItem} supportedLanguages={['en']} defaultLanguage="en" />)
+    expect(screen.queryByText('Translations')).toBeNull()
+  })
+
+  it('Translations section renders one card per non-default language', () => {
+    render(
+      <MenuItemForm
+        categories={sampleCategories}
+        item={sampleItem}
+        supportedLanguages={['en', 'es', 'fr']}
+        defaultLanguage="en"
+      />
+    )
+    expect(screen.getByText('Translations')).toBeDefined()
+    expect(screen.getByTestId('translation-card-es')).toBeDefined()
+    expect(screen.getByTestId('translation-card-fr')).toBeDefined()
+    expect(screen.queryByTestId('translation-card-en')).toBeNull()
   })
 })

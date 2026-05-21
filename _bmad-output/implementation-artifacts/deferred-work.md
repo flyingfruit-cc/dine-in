@@ -258,3 +258,21 @@
 - Task 7 manual smoke test pending — workflow-by-design. Satisfies the Done Gate for Stories 9.1, 9.2, and 9.3 once executed. [9-3 Task 7]
 - Admin-client throw not wrapped in try/catch on the new SSR order tracking page — established project pattern; the menu page (`app/[restaurant_slug]/[table_number]/page.tsx`) does not try/catch either. Fix would be project-wide, not 9.3-scoped. [app/[restaurant_slug]/[table_number]/order/[order_id]/page.tsx]
 - `submitOrder` lacks idempotency — duplicate orders are possible if a user retries after the (unreachable) "insert succeeded but row read failed" branch fires. Pre-existing concern in `submitOrder`; not introduced by 9.3. Would need a client-generated idempotency key or a recent-duplicate-detection query. [actions/orderActions.ts:99-105]
+
+## Deferred from: code review of 10-1-translation-data-model-owner-editor (2026-05-21)
+
+- `updateMenuItemTranslation` re-reads `restaurants.supported_languages` on every save. Acceptable at 2s debounce; revisit if hot. [actions/menuActions.ts:264]
+- `UPDATE_FAILED` code conflates DB errors and RLS denials. Distinct codes would require parsing Postgres error codes. [actions/menuActions.ts:280]
+- `.single()` crashes for owner without `profiles` row on edit/new menu pages. Pre-existing project pattern. [app/admin/menu/[item_id]/page.tsx:15]
+- Silent null fallback in Settings/Edit pages (`?? ['en']`). Relies on middleware auth gate; pages don't repeat the check. [app/admin/settings/page.tsx:18]
+- TranslationCards autosave when `<details>` is collapsed. Cards mount once and stay mounted; works as intended per AC#6 but status indicator hidden during save. [components/admin/MenuItemForm.tsx:266]
+- `toMenuItem` does not validate `translations` JSONB shape. Defensive against legacy/manual writes; rare. [actions/menuActions.ts:8]
+- Test gap: concurrent typing on same TranslationCard (race tests).
+- Test gap: cross-tenant at action layer for `updateMenuItemTranslation` (RLS handles via `get_my_restaurant_id()` in RPC; existing RLS tests prove tenant isolation transitively).
+- Migration not idempotent (`ADD CONSTRAINT` without `IF NOT EXISTS`). Project applies migrations one-shot via MCP. [supabase/migrations/20260521100000_...sql]
+- Name/description length unbounded in `updateMenuItemTranslation` and `updateMenuItem`. No spec requirement. [actions/menuActions.ts]
+- `revalidatePath` not called after translation/language saves. Project doesn't use this pattern.
+- `update_menu_item_translation` Postgres function lacks `SET search_path = ''`. Hardening concern; other functions don't set this either.
+- `jsonb_set(null, ...)` returns NULL edge case. Mitigated by `NOT NULL DEFAULT '{}'` column constraint; legacy NULL path unreachable.
+- Auth gate at page level for `/admin/*` pages. Project relies on middleware.
+- Network exception in `updateRestaurantLanguages` not try/catch wrapped. Server Actions per project rule never throw; runtime crash is out of normal flow. [actions/restaurantActions.ts]

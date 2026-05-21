@@ -11,16 +11,21 @@ import {
 import { formatPrice } from "@/utils/formatPrice";
 import { VariantEditor } from "@/components/admin/VariantEditor";
 import { AvailabilitySchedule } from "@/components/admin/AvailabilitySchedule";
+import { TranslationCard } from "@/components/admin/TranslationCard";
 import type { Category, MenuItem, VariantGroup, AvailabilitySchedule as Schedule } from "@/types/app";
+import { type AllowedLanguage } from "@/utils/languages";
 
 interface Props {
   categories: Category[];
   item?: MenuItem;
+  supportedLanguages: string[];
+  defaultLanguage: string;
 }
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
-export function MenuItemForm({ categories, item }: Props) {
+export function MenuItemForm({ categories, item, supportedLanguages, defaultLanguage }: Props) {
+  const nonDefaultLanguages = supportedLanguages.filter((l) => l !== defaultLanguage) as AllowedLanguage[]
   const router = useRouter();
   const [name, setName] = useState(item?.name ?? "");
   const [description, setDescription] = useState(item?.description ?? "");
@@ -260,6 +265,26 @@ export function MenuItemForm({ categories, item }: Props) {
           onChange={setAvailabilitySchedule}
         />
       </div>
+
+      {/* Translations */}
+      {item?.id && nonDefaultLanguages.length > 0 && (
+        <details className="flex flex-col gap-1">
+          <summary className="cursor-pointer text-sm font-medium text-text-primary select-none">
+            Translations
+          </summary>
+          <div className="mt-3 flex flex-col gap-3">
+            {nonDefaultLanguages.map((lang) => (
+              <TranslationCard
+                key={lang}
+                itemId={item.id}
+                langCode={lang}
+                initialName={item.translations?.[lang]?.name ?? ''}
+                initialDescription={item.translations?.[lang]?.description ?? ''}
+              />
+            ))}
+          </div>
+        </details>
+      )}
 
       {/* Image */}
       <div className="flex flex-col gap-1">

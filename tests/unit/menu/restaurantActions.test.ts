@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 
-import { publishMenu, takeMenuOffline, recordMenuPreview } from '@/actions/restaurantActions'
+import { publishMenu, takeMenuOffline, recordMenuPreview, updateRestaurantLanguages } from '@/actions/restaurantActions'
 import { createClient } from '@/lib/supabase/server'
 
 const RESTAURANT_ID = 'rest-uuid-123'
@@ -200,5 +200,88 @@ describe('recordMenuPreview', () => {
     const result = await recordMenuPreview()
     expect(result.success).toBe(false)
     if (!result.success) expect(result.error).toBe('DB error')
+  })
+})
+
+describe('updateRestaurantLanguages', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('returns NOT_AUTHENTICATED when no user', async () => {
+    vi.mocked(createClient).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
+      from: vi.fn(),
+    } as any)
+    const result = await updateRestaurantLanguages(['en'], 'en')
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.code).toBe('NOT_AUTHENTICATED')
+  })
+
+  it('returns NOT_FOUND when no restaurantId', async () => {
+    vi.mocked(createClient).mockResolvedValue(makeAuthClient(null) as any)
+    const result = await updateRestaurantLanguages(['en'], 'en')
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.code).toBe('NOT_FOUND')
+  })
+
+  it('rejects entries outside ALLOWED_LANGUAGES', async () => {
+    vi.mocked(createClient).mockResolvedValue(makeAuthClient() as any)
+    const result = await updateRestaurantLanguages(['en', 'de'], 'en')
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.code).toBe('INVALID_LANGUAGE')
+  })
+
+  it('deduplicates supported_languages before validation and persists the unique set', async () => {
+    const updateChain = makeUpdateChain()
+    vi.mocked(createClient).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: USER_ID } } }) },
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'profiles') return makeProfileChain()
+        return updateChain
+      }),
+    } as any)
+    const result = await updateRestaurantLanguages(['en', 'es', 'fr', 'ja', 'zh', 'en'], 'en')
+    expect(result.success).toBe(true)
+    expect(updateChain.update).toHaveBeenCalledWith({
+      supported_languages: ['en', 'es', 'fr', 'ja', 'zh'],
+      default_language: 'en',
+    })
+  })
+
+  it('rejects when en is missing', async () => {
+    vi.mocked(createClient).mockResolvedValue(makeAuthClient() as any)
+    const result = await updateRestaurantLanguages(['es'], 'es')
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.code).toBe('INVALID_LANGUAGE')
+      expect(result.error).toBe('English is required')
+    }
+  })
+
+  it('rejects when default_language not in supported_languages', async () => {
+    vi.mocked(createClient).mockResolvedValue(makeAuthClient() as any)
+    const result = await updateRestaurantLanguages(['en', 'es'], 'fr')
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.code).toBe('INVALID_LANGUAGE')
+      expect(result.error).toBe('Default language must be one of the enabled languages')
+    }
+  })
+
+  it('success: calls UPDATE with supported_languages and default_language', async () => {
+    const updateChain = makeUpdateChain()
+    vi.mocked(createClient).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: USER_ID } } }) },
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === 'profiles') return makeProfileChain()
+        return updateChain
+      }),
+    } as any)
+    const result = await updateRestaurantLanguages(['en', 'es'], 'en')
+    expect(result.success).toBe(true)
+    expect(updateChain.update).toHaveBeenCalledWith({
+      supported_languages: ['en', 'es'],
+      default_language: 'en',
+    })
+    expect(updateChain.eq).toHaveBeenCalledWith('id', RESTAURANT_ID)
   })
 })
