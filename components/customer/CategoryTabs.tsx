@@ -20,7 +20,7 @@ export function CategoryTabs({ categories, hasUncategorized }: Props) {
   const sectionOrderRef = useRef(allIds)
   const tabBarRef = useRef<HTMLDivElement>(null)
   const suppressRef = useRef(false)
-  const suppressTimerRef = useRef<ReturnType<typeof setTimeout>>()
+  const suppressTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {
     const order = sectionOrderRef.current
