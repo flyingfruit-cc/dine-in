@@ -3,12 +3,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { isOrderStatus } from '@/utils/orderStatus'
-import type { OrderStatus } from '@/types/app'
+import { pickTranslation } from '@/utils/pickTranslation'
+import { formatChrome } from '@/utils/formatChrome'
+import { HtmlLangPatcher } from '@/components/customer/HtmlLangPatcher'
+import type { ChromeStrings, OrderStatus } from '@/types/app'
 
 interface ConfirmedItem {
   name: string
   quantity: number
   variantNames: string[]
+  translations?: Record<string, { name: string; description?: string }>
 }
 
 interface OrderConfirmationScreenProps {
@@ -17,27 +21,8 @@ interface OrderConfirmationScreenProps {
   restaurantName: string
   tableNumber: string | number
   items: ConfirmedItem[]
-}
-
-const HEADLINE: Record<OrderStatus, string> = {
-  received: 'Your order is with the kitchen',
-  preparing: 'Your food is being prepared',
-  ready: 'Your order is ready',
-  completed: 'Order completed — enjoy your meal',
-}
-
-const SUBHEAD: Record<OrderStatus, string> = {
-  received: 'Thank you! Sit tight while we prepare your food.',
-  preparing: 'The kitchen is working on it.',
-  ready: 'Please collect your order.',
-  completed: 'We hope to see you again soon.',
-}
-
-const PILL_LABEL: Record<OrderStatus, string> = {
-  received: 'Confirmed',
-  preparing: 'Preparing',
-  ready: 'Ready',
-  completed: 'Completed',
+  lang: string
+  chrome: ChromeStrings
 }
 
 const PILL_CLASS: Record<OrderStatus, string> = {
@@ -60,6 +45,8 @@ export function OrderConfirmationScreen({
   restaurantName,
   tableNumber,
   items,
+  lang,
+  chrome,
 }: OrderConfirmationScreenProps) {
   const headlineRef = useRef<HTMLHeadingElement>(null)
   const [status, setStatus] = useState<OrderStatus>(initialStatus)
@@ -101,8 +88,17 @@ export function OrderConfirmationScreen({
     }
   }, [orderId, status])
 
+  const headline = chrome[`order.headline.${status}`]
+  const subhead = chrome[`order.subhead.${status}`]
+  const pillLabel = chrome[`order.pill.${status}`]
+  const caption = formatChrome(chrome['order.tableCaption'], {
+    restaurantName,
+    tableNumber: String(tableNumber),
+  })
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-start bg-surface px-6 pt-16 pb-12">
+      <HtmlLangPatcher lang={lang} />
       <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-success/10">
         <svg
           viewBox="0 0 24 24"
@@ -125,11 +121,11 @@ export function OrderConfirmationScreen({
         aria-live="assertive"
         className="mb-2 text-center text-2xl font-semibold text-text-primary focus:outline-none"
       >
-        {HEADLINE[status]}
+        {headline}
       </h1>
 
       <p className="mb-6 text-center text-base text-text-secondary">
-        {SUBHEAD[status]}
+        {subhead}
       </p>
 
       <p
@@ -138,27 +134,28 @@ export function OrderConfirmationScreen({
         className={`mb-6 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium ${PILL_CLASS[status]}`}
       >
         <span aria-hidden="true" className={`h-2 w-2 rounded-full ${DOT_CLASS[status]}`} />
-        {PILL_LABEL[status]}
+        {pillLabel}
       </p>
 
       <hr className="w-full border-border mb-6" />
 
       <ul className="w-full space-y-3">
-        {items.map((item, idx) => (
-          <li key={idx} className="flex flex-col">
-            <span className="text-base font-medium text-text-primary">
-              {item.quantity}× {item.name}
-            </span>
-            {item.variantNames.map((v, vi) => (
-              <span key={vi} className="text-sm text-text-secondary">{v}</span>
-            ))}
-          </li>
-        ))}
+        {items.map((item, idx) => {
+          const { name } = pickTranslation(item, lang)
+          return (
+            <li key={idx} className="flex flex-col">
+              <span className="text-base font-medium text-text-primary">
+                {item.quantity}× {name}
+              </span>
+              {item.variantNames.map((v, vi) => (
+                <span key={vi} className="text-sm text-text-secondary">{v}</span>
+              ))}
+            </li>
+          )
+        })}
       </ul>
 
-      <p className="mt-8 text-sm text-text-secondary">
-        {restaurantName} · Table {tableNumber}
-      </p>
+      <p className="mt-8 text-sm text-text-secondary">{caption}</p>
     </main>
   )
 }

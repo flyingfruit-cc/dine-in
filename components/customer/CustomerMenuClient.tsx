@@ -5,17 +5,33 @@ import { CategoryTabs } from '@/components/customer/CategoryTabs'
 import { MenuItemRow } from '@/components/customer/MenuItemRow'
 import { ItemConfigSheet } from '@/components/customer/ItemConfigSheet'
 import { CartBar } from '@/components/customer/CartBar'
+import { LanguageSwitcher } from '@/components/customer/LanguageSwitcher'
+import { HtmlLangPatcher } from '@/components/customer/HtmlLangPatcher'
 import { UNCATEGORIZED_KEY } from '@/utils/customerMenu'
-import type { Category, MenuItem, EnrichedMenuItem } from '@/types/app'
+import type { AllowedLanguage } from '@/utils/languages'
+import type { Category, ChromeStrings, MenuItem, EnrichedMenuItem } from '@/types/app'
 
 interface Props {
   categories: Category[]
   items: EnrichedMenuItem[]
   hasUncategorized: boolean
   restaurantName: string
+  lang: AllowedLanguage
+  chrome: ChromeStrings
+  supportedLanguages: string[]
+  defaultLanguage: string
 }
 
-export function CustomerMenuClient({ categories, items, hasUncategorized, restaurantName }: Props) {
+export function CustomerMenuClient({
+  categories,
+  items,
+  hasUncategorized,
+  restaurantName,
+  lang,
+  chrome,
+  supportedLanguages,
+  defaultLanguage,
+}: Props) {
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
 
   const itemsByCategory = categories.reduce<Record<string, EnrichedMenuItem[]>>((acc, cat) => {
@@ -27,12 +43,19 @@ export function CustomerMenuClient({ categories, items, hasUncategorized, restau
 
   return (
     <div>
+      <HtmlLangPatcher lang={lang} />
       {categories.length > 0 || hasUncategorized ? (
-        <CategoryTabs categories={categories} hasUncategorized={hasUncategorized} />
+        <CategoryTabs categories={categories} hasUncategorized={hasUncategorized} chrome={chrome} />
       ) : null}
 
-      <header className="px-4 py-4 border-b border-border">
+      <header className="flex items-center justify-between gap-3 px-4 py-4 border-b border-border">
         <h1 className="text-lg font-semibold text-text-primary">{restaurantName}</h1>
+        <LanguageSwitcher
+          lang={lang}
+          supportedLanguages={supportedLanguages}
+          defaultLanguage={defaultLanguage}
+          chrome={chrome}
+        />
       </header>
 
       <div>
@@ -47,6 +70,8 @@ export function CustomerMenuClient({ categories, items, hasUncategorized, restau
                     key={item.id}
                     item={item}
                     isAvailable={item.isAvailable}
+                    lang={lang}
+                    chrome={chrome}
                     onTap={item.isAvailable ? () => setSelectedItem(item) : undefined}
                   />
                 ))}
@@ -57,13 +82,15 @@ export function CustomerMenuClient({ categories, items, hasUncategorized, restau
 
         {hasUncategorized && (
           <section id={UNCATEGORIZED_KEY} className="scroll-mt-14 px-4 py-4">
-            <h2 className="mb-3 text-base font-semibold text-text-primary">Uncategorized</h2>
+            <h2 className="mb-3 text-base font-semibold text-text-primary">{chrome['menu.uncategorized']}</h2>
             <div className="flex flex-col">
               {uncategorized.map((item) => (
                 <MenuItemRow
                   key={item.id}
                   item={item}
                   isAvailable={item.isAvailable}
+                  lang={lang}
+                  chrome={chrome}
                   onTap={item.isAvailable ? () => setSelectedItem(item) : undefined}
                 />
               ))}
@@ -72,8 +99,8 @@ export function CustomerMenuClient({ categories, items, hasUncategorized, restau
         )}
       </div>
 
-      <ItemConfigSheet item={selectedItem} onClose={() => setSelectedItem(null)} />
-      <CartBar />
+      <ItemConfigSheet item={selectedItem} lang={lang} chrome={chrome} onClose={() => setSelectedItem(null)} />
+      <CartBar lang={lang} chrome={chrome} defaultLanguage={defaultLanguage} />
     </div>
   )
 }

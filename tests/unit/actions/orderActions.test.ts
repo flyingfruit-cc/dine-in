@@ -183,6 +183,59 @@ describe('submitOrder', () => {
 
     expect(result.success).toBe(false)
   })
+
+  it('persists the translations snapshot from cart items into orders.items', async () => {
+    const client = makeAdminClient()
+    vi.mocked(createAdminClient).mockReturnValue(client as never)
+
+    const result = await submitOrder({
+      restaurantSlug: 'test-restaurant',
+      tableNumber: 1,
+      cartItems: [
+        {
+          cartItemId: 'ci-1',
+          menuItemId: 'mi-1',
+          name: 'Pizza',
+          price_cents: 1500,
+          selectedVariants: [],
+          translations: { es: { name: 'Pizza ES', description: 'Pizza de queso' } },
+        },
+      ],
+    })
+
+    expect(result.success).toBe(true)
+    const insertArg = client._insertMock.mock.calls[0][0] as {
+      items: Array<{ translations?: Record<string, { name: string }> }>
+    }
+    expect(insertArg.items[0].translations).toEqual({
+      es: { name: 'Pizza ES', description: 'Pizza de queso' },
+    })
+  })
+
+  it('omits translations field on stored item when cart item has none (pre-10.2)', async () => {
+    const client = makeAdminClient()
+    vi.mocked(createAdminClient).mockReturnValue(client as never)
+
+    const result = await submitOrder({
+      restaurantSlug: 'test-restaurant',
+      tableNumber: 1,
+      cartItems: [
+        {
+          cartItemId: 'ci-1',
+          menuItemId: 'mi-1',
+          name: 'Pizza',
+          price_cents: 1500,
+          selectedVariants: [],
+        },
+      ],
+    })
+
+    expect(result.success).toBe(true)
+    const insertArg = client._insertMock.mock.calls[0][0] as {
+      items: Array<{ translations?: Record<string, unknown> }>
+    }
+    expect(insertArg.items[0].translations).toBeUndefined()
+  })
 })
 
 type OrderStatusValue = 'received' | 'preparing' | 'ready' | 'completed'

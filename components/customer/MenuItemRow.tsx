@@ -1,15 +1,20 @@
 'use client'
 
 import { formatPrice } from '@/utils/formatPrice'
-import type { MenuItem } from '@/types/app'
+import { pickTranslation } from '@/utils/pickTranslation'
+import type { ChromeStrings, MenuItem } from '@/types/app'
 
 interface Props {
   item: MenuItem
   isAvailable: boolean
+  lang: string
+  chrome: ChromeStrings
   onTap?: () => void
 }
 
-export function MenuItemRow({ item, isAvailable, onTap }: Props) {
+export function MenuItemRow({ item, isAvailable, lang, chrome, onTap }: Props) {
+  const { name, description } = pickTranslation(item, lang)
+
   const handleTap = () => {
     if (!isAvailable || !onTap) return
     onTap()
@@ -26,7 +31,7 @@ export function MenuItemRow({ item, isAvailable, onTap }: Props) {
     <div
       role="button"
       tabIndex={0}
-      aria-label={`${item.name}, ${formatPrice(item.price_cents)}`}
+      aria-label={`${name}, ${formatPrice(item.price_cents)}`}
       aria-disabled={!isAvailable ? 'true' : undefined}
       onClick={handleTap}
       onKeyDown={handleKeyDown}
@@ -36,7 +41,7 @@ export function MenuItemRow({ item, isAvailable, onTap }: Props) {
         {item.image_url && (
           <img
             src={item.image_url}
-            alt={item.name}
+            alt={name}
             width={80}
             height={80}
             className="h-full w-full object-cover"
@@ -46,12 +51,12 @@ export function MenuItemRow({ item, isAvailable, onTap }: Props) {
       </div>
 
       <div className="flex flex-col gap-0.5 flex-1 min-h-[44px]">
-        <span className="line-clamp-2 text-sm font-medium text-text-primary">{item.name}</span>
-        {item.description && (
-          <span className="line-clamp-2 text-xs text-text-secondary">{item.description}</span>
+        <span className="line-clamp-2 text-sm font-medium text-text-primary">{name}</span>
+        {description && (
+          <span className="line-clamp-2 text-xs text-text-secondary">{description}</span>
         )}
         {!isAvailable && (
-          <span className="text-xs text-text-tertiary">Not available right now</span>
+          <span className="text-xs text-text-tertiary">{chrome['menu.itemNotAvailable']}</span>
         )}
       </div>
       <span className="shrink-0 self-start text-sm font-medium text-text-primary">

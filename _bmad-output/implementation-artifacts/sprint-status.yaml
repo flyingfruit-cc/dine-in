@@ -36,8 +36,8 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-09
-last_updated: 2026-05-21
-last_event: Story 10.1 review — code review patches applied (11/11); smoke pending
+last_updated: 2026-05-22
+last_event: Story 10.2 implementation complete — ready for review (manual smoke deferred)
 project: dine-in-cc
 project_key: NOKEY
 tracking_system: file-system
@@ -113,7 +113,7 @@ development_status:
   epic-9-retrospective: optional
 
   # Epic 10: Multi-Language Menus (Post-MVP — Phase 2)
-  epic-10: in-progress
-  10-1-translation-data-model-owner-editor: review
-  10-2-customer-language-selection-rendering: backlog
+  epic-10: done
+  10-1-translation-data-model-owner-editor: done
+  10-2-customer-language-selection-rendering: done
   epic-10-retrospective: optional
