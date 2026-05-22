@@ -65,7 +65,7 @@ export async function submitOrder({
     return { success: false, error: RETRY_ERROR }
   }
 
-  const map = new Map<string, { name: string; quantity: number; variants: string[]; unit_price_cents: number }>()
+  const map = new Map<string, { name: string; quantity: number; variants: string[]; unit_price_cents: number; translations?: Record<string, { name: string; description?: string }> }>()
   for (const item of cartItems) {
     const variantKey = item.selectedVariants
       .map((v) => `${v.groupId}:${v.optionId}`)
@@ -81,6 +81,7 @@ export async function submitOrder({
         quantity: 1,
         variants: item.selectedVariants.map((v) => v.optionName),
         unit_price_cents: item.price_cents,
+        translations: item.translations,
       })
     }
   }

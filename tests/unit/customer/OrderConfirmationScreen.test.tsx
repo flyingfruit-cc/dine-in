@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi, beforeEach } from 'vitest'
 import { render, screen, cleanup, act } from '@testing-library/react'
 import { OrderConfirmationScreen } from '@/components/customer/OrderConfirmationScreen'
+import { makeChrome } from './_fixtures/chromeFixture'
 
 afterEach(() => {
   cleanup()
@@ -37,6 +38,8 @@ const defaultProps = {
   restaurantName: 'Test Restaurant',
   tableNumber: 3,
   items: defaultItems,
+  lang: 'en',
+  chrome: makeChrome(),
 }
 
 beforeEach(() => {
@@ -253,6 +256,50 @@ describe('OrderConfirmationScreen', () => {
       render(<OrderConfirmationScreen {...defaultProps} />)
       const headline = screen.getByText('Your order is with the kitchen')
       expect(document.activeElement).toBe(headline)
+    })
+  })
+
+  describe('translation rendering', () => {
+    it('renders item name from translations when present for active lang', () => {
+      const items = [
+        {
+          name: 'Burger',
+          quantity: 1,
+          variantNames: [],
+          translations: { es: { name: 'Hamburguesa' } },
+        },
+      ]
+      render(<OrderConfirmationScreen {...defaultProps} items={items} lang="es" />)
+      expect(screen.getByText('1× Hamburguesa')).toBeDefined()
+    })
+
+    it('falls back to stored name when translations field is absent (pre-10.2 order)', () => {
+      const items = [{ name: 'Burger', quantity: 1, variantNames: [] }]
+      render(<OrderConfirmationScreen {...defaultProps} items={items} lang="es" />)
+      expect(screen.getByText('1× Burger')).toBeDefined()
+    })
+
+    it('headline/subhead/pill come from chrome bundle keyed by status', () => {
+      const chrome = makeChrome({
+        'order.headline.preparing': 'CUSTOM HEADLINE',
+        'order.subhead.preparing': 'CUSTOM SUBHEAD',
+        'order.pill.preparing': 'CUSTOM PILL',
+      })
+      render(
+        <OrderConfirmationScreen
+          {...defaultProps}
+          initialStatus="preparing"
+          chrome={chrome}
+        />,
+      )
+      expect(screen.getByText('CUSTOM HEADLINE')).toBeDefined()
+      expect(screen.getByText('CUSTOM SUBHEAD')).toBeDefined()
+      expect(screen.getByRole('status').textContent).toContain('CUSTOM PILL')
+    })
+
+    it('table caption interpolates restaurantName and tableNumber', () => {
+      render(<OrderConfirmationScreen {...defaultProps} restaurantName="Acme" tableNumber={9} />)
+      expect(screen.getByText('Acme · Table 9')).toBeDefined()
     })
   })
 })

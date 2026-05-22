@@ -1,15 +1,16 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import type { Category } from '@/types/app'
+import type { Category, ChromeStrings } from '@/types/app'
 import { UNCATEGORIZED_KEY } from '@/utils/customerMenu'
 
 interface Props {
   categories: Category[]
   hasUncategorized: boolean
+  chrome: ChromeStrings
 }
 
-export function CategoryTabs({ categories, hasUncategorized }: Props) {
+export function CategoryTabs({ categories, hasUncategorized, chrome }: Props) {
   const allIds = [
     ...categories.map((c) => c.id),
     ...(hasUncategorized ? [UNCATEGORIZED_KEY] : []),
@@ -72,6 +73,8 @@ export function CategoryTabs({ categories, hasUncategorized }: Props) {
     setActiveTab(id)
   }
 
+  const uncategorizedLabel = chrome['menu.uncategorized']
+
   return (
     <>
       <div ref={tabBarRef} className="fixed top-0 inset-x-0 z-10 border-b border-border bg-background">
@@ -102,7 +105,7 @@ export function CategoryTabs({ categories, hasUncategorized }: Props) {
                   : 'text-text-secondary hover:text-text-primary'
                 }`}
             >
-              Uncategorized
+              {uncategorizedLabel}
             </button>
           )}
         </div>

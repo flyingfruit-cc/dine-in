@@ -2,11 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { formatPrice } from '@/utils/formatPrice'
+import { pickTranslation } from '@/utils/pickTranslation'
 import { useCartStore } from '@/stores/cartStore'
-import type { MenuItem, CartItem, SelectedVariant } from '@/types/app'
+import type { CartItem, ChromeStrings, MenuItem, SelectedVariant } from '@/types/app'
 
 interface Props {
   item: MenuItem | null
+  lang: string
+  chrome: ChromeStrings
   onClose: () => void
 }
 
@@ -32,7 +35,7 @@ function buildInitialSelection(item: MenuItem): Record<string, string> {
   return selection
 }
 
-export function ItemConfigSheet({ item, onClose }: Props) {
+export function ItemConfigSheet({ item, lang, chrome, onClose }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
@@ -93,6 +96,7 @@ export function ItemConfigSheet({ item, onClose }: Props) {
       name: item.name,
       price_cents: getEffectivePrice(item, selectedOptions),
       selectedVariants: selectedVariantsList,
+      translations: item.translations,
     }
 
     useCartStore.getState().addItem(cartItem)
@@ -100,6 +104,8 @@ export function ItemConfigSheet({ item, onClose }: Props) {
   }
 
   const displayedPrice = item ? getEffectivePrice(item, selectedOptions) : 0
+  const translated = item ? pickTranslation(item, lang) : { name: '', description: null }
+  const addToOrderLabel = chrome['item.addToOrder']
 
   return (
     <dialog
@@ -122,7 +128,7 @@ export function ItemConfigSheet({ item, onClose }: Props) {
           {item?.image_url ? (
             <img
               src={item.image_url}
-              alt={item?.name ?? ''}
+              alt={translated.name}
               className="h-full w-full object-cover"
               onError={(e) => {
                 e.currentTarget.style.display = 'none'
@@ -141,7 +147,7 @@ export function ItemConfigSheet({ item, onClose }: Props) {
               tabIndex={-1}
               className="text-[22px] font-semibold leading-7 text-text-primary outline-none"
             >
-              {item?.name}
+              {translated.name}
             </h2>
             <span className="shrink-0 font-mono text-base font-semibold text-text-primary">
               {formatPrice(displayedPrice)}
@@ -149,8 +155,8 @@ export function ItemConfigSheet({ item, onClose }: Props) {
           </div>
 
           {/* Description */}
-          {item?.description && (
-            <p className="text-sm text-text-secondary">{item.description}</p>
+          {translated.description && (
+            <p className="text-sm text-text-secondary">{translated.description}</p>
           )}
 
           {/* Variant selectors */}
@@ -191,10 +197,10 @@ export function ItemConfigSheet({ item, onClose }: Props) {
           <button
             type="button"
             onClick={handleAddToOrder}
-            aria-label="Add to Order"
+            aria-label={addToOrderLabel}
             className="mt-2 flex min-h-[48px] w-full items-center justify-center rounded-xl bg-accent text-base font-semibold text-white"
           >
-            Add to Order
+            {addToOrderLabel}
           </button>
         </div>
       </div>

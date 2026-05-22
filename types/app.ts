@@ -7,6 +7,10 @@ export type ActionResult<T> =
 // Use utils/formatPrice.ts for display formatting
 export type PriceCents = number
 
+// Customer-facing UI chrome strings keyed by dot-namespaced key (e.g. "cart.placeOrder").
+// Loaded server-side from i18n/<lang>.json; English bundle is the canonical key set.
+export type ChromeStrings = Record<string, string>
+
 export interface Restaurant {
   id: string
   slug: string
@@ -106,6 +110,7 @@ export interface CartItem {
   name: string
   price_cents: number
   selectedVariants: SelectedVariant[]
+  translations?: Record<string, { name: string; description?: string }>
 }
 
 export type EnrichedMenuItem = MenuItem & { isAvailable: boolean }
@@ -115,6 +120,7 @@ export interface OrderItem {
   quantity: number
   variants: string[]
   unit_price_cents: number
+  translations?: Record<string, { name: string; description?: string }>
 }
 
 export type OrderStatus = 'received' | 'preparing' | 'ready' | 'completed'
