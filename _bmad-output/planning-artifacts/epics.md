@@ -135,6 +135,7 @@ UX-DR13: Empty state patterns — every empty state has a contextual CTA. Empty 
 UX-DR14: Accessibility implementation — focus management for ItemConfigSheet (focus to heading on open, return to triggering row on dismiss); skip link `<a href="#main-content">` as first focusable element in Admin UI desktop; error messages with `role="alert"`; CartBar count with `aria-live="polite"`; Admin feed new order arrival with `aria-live="polite"`; full keyboard navigation in all Admin UI flows; axe-core automated accessibility checks in CI (blocks deploy on WCAG AA violations).
 UX-DR15: Admin UI mobile navigation — bottom tab bar with 3 tabs (Orders · Menu · Settings), Orders as default tab during service, portrait-first order card layout, all actions in thumb zone (min 44×44px tap targets), `padding-bottom: env(safe-area-inset-bottom)` for CartBar and bottom tab bar.
 UX-DR16: Form patterns across Admin UI — label always above field (never placeholder-as-label), validation on blur (not on keystroke), auto-save drafts in menu builder (debounced 2s after last keystroke), numeric keyboard for price inputs (`inputmode="decimal"`), image upload with drag-and-drop (desktop) / tap-to-select (mobile), preview shown immediately after selection.
+UX-DR17: Build **DashboardLandingSnapshot** custom component — replaces OnboardingChecklist on `/admin` once all onboarding steps are complete. Anatomy: today-stats card (active orders · today's orders · today's revenue) + recent-orders list (top 5, table + items + relative time + handled state) + quick-actions row (Orders · KDS · Menu · Settings). State: live (Server Component on each navigation; no client-side polling).
 UX-DR17: No toast notifications — all feedback is persistent. New order arrival signal is the appearing OrderCard row only (no badge accumulation, no toast). Confirmation dialogs only for destructive actions (delete item, remove table, take menu offline). All other actions are single-tap, no dialog.
 UX-DR18: Responsive implementation — Tailwind `sm:` and `lg:` prefixes only (no `md:` layout breakpoint for MVP), mobile-first. All images use `loading="lazy"` with explicit `width` and `height` to prevent layout shift. Tailwind spacing scale in `rem` — no fixed `px` for layout dimensions.
 
@@ -243,6 +244,11 @@ Customers receive real-time order progress (confirmed → preparing → ready) f
 Restaurant owners publish menu item translations in supported languages. Customers see the menu in their browser's preferred language or switch manually.
 **FRs covered:** FR55, FR56, FR57
 **Depends on:** Epic 2, Epic 4
+
+### Epic 11: Admin Dashboard Landing *(Post-MVP — Phase 2)*
+Replace the post-onboarding blank `/admin` page with a live service snapshot — today's order counts, today's revenue, recent orders preview, and quick actions. Resolves the dead-end empty state when `OnboardingChecklist` auto-hides.
+**FRs covered:** FR4a
+**Depends on:** Epic 1, Epic 5
 
 ---
 

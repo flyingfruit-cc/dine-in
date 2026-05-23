@@ -272,6 +272,7 @@ Domain regulatory burden is low. No HIPAA, PCI-DSS (payments are post-MVP), or i
 - **FR2:** Restaurant owner can create a restaurant profile (name, basic details) as part of onboarding
 - **FR3:** Restaurant owner can log in and log out of the Admin UI
 - **FR4:** Restaurant owner can reset their password
+- **FR4a:** When a restaurant owner signs in to the Admin UI and lands on `/admin`, the Dashboard surface presents a live service snapshot — today's active-order count, today's completed-order count, today's revenue total, the 3–5 most recent orders, and quick-action links to Orders, KDS, Menu, and Settings. While onboarding is incomplete, the `OnboardingChecklist` takes precedence and replaces the snapshot.
 
 ### Menu Management
 

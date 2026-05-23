@@ -757,9 +757,21 @@ Available from design-md (Apple-inspired base): Typography scale, Button (primar
 |---|---|
 | **Purpose** | Contextual setup guide in Admin UI dashboard until all steps complete |
 | **Anatomy** | Progress indicator · Step list (icon + label + status) · CTA per incomplete step |
-| **States** | Incomplete · Complete (checkmark, muted) · All complete (hides automatically) |
+| **States** | Incomplete · Complete (checkmark, muted) · All complete (component is no longer rendered by `/admin`; replaced by **DashboardLandingSnapshot** — see #7) |
 | **Variants** | Expanded (default) · Collapsed (dismissible after first completion) |
 | **Content rules** | Steps: Add menu items → Preview → Publish → Create tables → Print QR codes |
+
+**7. DashboardLandingSnapshot**
+
+| Attribute | Specification |
+|---|---|
+| **Purpose** | Live service snapshot on `/admin` once onboarding is complete — replaces OnboardingChecklist as the dashboard landing surface |
+| **Anatomy** | Today card (3 stats: active orders · today's orders · today's revenue) · Recent Orders list (top 5 rows + "Go to Orders →") · Quick Actions row (Orders · KDS · Menu · Settings) |
+| **States** | Default (≥1 order today) · Empty-today (Today card shows zeros, Recent Orders shows empty-state copy from §Empty States) |
+| **Variants** | Mobile (Quick Actions hides KDS — desktop-only) · Desktop (all 4 quick actions) |
+| **Interaction** | Server Component — refreshed on navigation to `/admin`. No client-side polling. Each Recent Order row reuses tap behavior of `OrderCard` (row expands to full item list). Quick Action links route via Next `<Link>` |
+| **Accessibility** | Today card: `role="region"`, `aria-label="Today's activity"`. Stats announced as "{n} active orders, {n} today, {revenue} revenue". Recent Orders list: `role="list"` with each row as `role="listitem"`. Quick Actions: `role="navigation"`, `aria-label="Quick actions"` |
+| **Content rules** | Empty-today copy: "No orders yet — orders will appear here automatically" (matches §Empty States line 821). Revenue: always via `utils/formatPrice.ts`. Relative time: always via `utils/formatTime.ts`. No toast on data load — calm by design (§Real-time updates line 824) |
 
 ### Component Implementation Strategy
 
@@ -771,6 +783,7 @@ Available from design-md (Apple-inspired base): Typography scale, Button (primar
 | P0 | OrderConfirmationScreen | Customer flow has no end state |
 | P0 | OrderCard | Admin UI has no order feed |
 | P1 | OnboardingChecklist | Owner setup requires manual discovery |
+| P1 | DashboardLandingSnapshot | Post-onboarding dashboard is a dead-end empty page |
 
 All custom components consume only tokens from the Visual Foundation — no hardcoded hex values.
 
