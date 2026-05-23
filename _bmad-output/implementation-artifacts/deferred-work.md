@@ -1,5 +1,21 @@
 # Deferred Work
 
+## Deferred from: code review of 11-1-dashboard-landing-snapshot (2026-05-23)
+
+- D4: `activeOrdersData?.length` silently caps at Supabase's 1000-row default for SELECTs. No MVP restaurant will realistically have >1000 simultaneously in-flight orders, but the cap is invisible if it ever bites. Future hardening: switch to `count: 'exact', head: true` (spec previously discouraged this pattern; codebase has no prior art for it).
+- D5: Cross-request UTC-midnight drift between `getRestaurantAnalytics` (which computes its own `new Date()` boundary) and any other query that needs a shared "today" boundary. After D1→P6 dropped the today filter from the active-count query, this is narrowed to the analytics RPC alone — purely cosmetic, self-corrects on next render. Future fix: add an overload to `getRestaurantAnalytics` that accepts an explicit `periodStart`.
+- UTC "today" boundary ignores restaurant local timezone — project-wide MVP convention per `lib/analytics/getRestaurantAnalytics.ts:11-13`; spec AC3 explicitly mirrors. The dashboard surfaces this most painfully (the "Today" card resets at UTC midnight, mid-dinner-service for non-UTC restaurants).
+- `tables` query fetches all rows on every dashboard render just to build a 5-key `tablesById` lookup — wasteful for food-hall tenants. Spec merged the existence-check and lookup-map; revisit if/when a tenant has hundreds of tables.
+- `recentOrders` query uses `select('*')` — minor wire-payload optimization; future `orders` schema additions silently bloat the query.
+- `as Order[]` cast over Supabase Json `items` column hides shape drift — pre-existing project pattern (OrderFeed/orderStore do the same). Project-wide runtime guard or zod parse would fix all surfaces at once.
+- Recent-orders row for a deleted table renders as "Table —" (same string as "unknown"), creating phantom rows with no diagnostic. Future: SQL join on `orders.tables(number)`, or surface "(deleted)".
+- `analytics.error === true` rendered as zeros with no "temporarily unavailable" UI — spec Dev Notes explicitly chose this behavior; revisit if owners report confusion.
+- Mobile-only Kitchen quick-action hide makes KDS unreachable from a phone — per spec AC5. Revisit when KDS gains a mobile-friendly view.
+- Test coverage gaps in `DashboardLandingSnapshot.test.tsx`: no test for `tablesById` missing-key fallback, no test for `tablesById[t-id] = 0` regression (locks in `??` vs `||` semantics), no SC/CC serialization-boundary assertion, no `items: []` boundary.
+- `formatPrice` returns unstyled `$-X.XX` for negative cents and `$NaN` for non-finite — pre-existing utility, not introduced by this story.
+- Owner SELECT RLS policy on `orders` is assumed (not re-verified). Already exercised by OrderFeed since Story 5.1, but dashboard is the first place a missing policy would produce silent "No orders yet" instead of an explicit error.
+- `Order.status` enum drift — if a future migration adds a status value, `STATUS_DOT_CLASS[order.status]` returns undefined. Pre-existing in OrderCard; dashboard surfaces it on a new route.
+
 ## Deferred from: code review of 1-1-project-initialization-infrastructure-setup (2026-05-09)
 
 - `global_fetch_strictly_public` flag in `wrangler.toml` blocks private/loopback IPs — only relevant when using `wrangler dev` against local Supabase; not blocking for CF production. Revisit when local wrangler dev workflow is tested.
