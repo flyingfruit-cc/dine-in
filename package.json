@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:rls": "playwright test tests/rls/",
-    "check:i18n": "node scripts/check-i18n-coverage.mjs"
+    "check:i18n": "node scripts/check-i18n-coverage.mjs",
+    "capture:screenshots": "CAPTURE_SCREENSHOTS=1 playwright test tests/e2e/capture-screenshots.spec.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

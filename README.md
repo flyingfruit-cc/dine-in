@@ -3,6 +3,7 @@
 QR-code dine-in ordering for restaurants. Guests scan a code at their table, browse the menu in their language, and place an order — no app install. Staff manage the menu, tables, and incoming tickets from an admin UI with real-time updates.
 
 <p>
+  <a href="#screenshots"><strong>Screenshots</strong></a> ·
   <a href="#features"><strong>Features</strong></a> ·
   <a href="#tech-stack"><strong>Tech Stack</strong></a> ·
   <a href="#project-structure"><strong>Structure</strong></a> ·
@@ -11,15 +12,33 @@ QR-code dine-in ordering for restaurants. Guests scan a code at their table, bro
   <a href="#deployment"><strong>Deployment</strong></a>
 </p>
 
+## Screenshots
+
+### Customer ordering (mobile)
+
+The guest experience after scanning the QR code at their table — live menu grouped by category, with language switcher.
+
+<p align="center">
+  <img src="docs/screenshots/customer-menu.png" alt="Customer menu on mobile" width="360" />
+</p>
+
+### Admin
+
+|                        Dashboard                         |                        Analytics                         |
+| :------------------------------------------------------: | :------------------------------------------------------: |
+| ![Admin dashboard](docs/screenshots/admin-dashboard.png) | ![Admin analytics](docs/screenshots/admin-analytics.png) |
+
 ## Features
 
 ### For guests (customer ordering)
+
 - **No-app ordering.** Scan a per-table QR code at `/[restaurant_slug]/[table_number]`, browse the live menu, add items to a cart, and submit — all in the browser.
 - **Item variants & options.** Size, modifier, and option selections on each menu item.
 - **Multi-language menu.** Customers can switch between English, Spanish, French, Japanese, and Chinese.
 - **Order confirmation screen.** Once submitted, guests see their ticket status.
 
 ### For restaurant operators (admin)
+
 - **Drag-and-drop menu builder.** Categories, items, variants, photos, display order, and availability windows. Preview before publishing.
 - **Table & QR management.** Generate, download, and print a unique QR code per table.
 - **Real-time order feed & KDS.** New tickets appear in the orders dashboard and kitchen display within seconds (Supabase Realtime, with polling fallback).
@@ -28,27 +47,28 @@ QR-code dine-in ordering for restaurants. Guests scan a code at their table, bro
 - **Dashboard landing snapshot.** At-a-glance status when the operator logs in.
 
 ### Platform
+
 - **Multi-tenant.** Each restaurant is isolated via row-level security; platform operators have a `/platform/tenants` admin for cross-tenant management.
 - **Auth.** Email/password sign-up, login, password reset, with Supabase Auth + cookie-based SSR sessions. Custom access-token hook enriches JWT claims for RLS.
 
 ## Tech Stack
 
-| Layer | Choice |
-| --- | --- |
-| Framework | [Next.js 16](https://nextjs.org) (App Router) + React 19 |
-| Language | TypeScript |
-| Backend / DB | [Supabase](https://supabase.com) — Postgres, Auth, Realtime, RLS |
-| Supabase SSR | `@supabase/ssr` for cookie-based sessions across server/client/middleware |
-| Styling | [Tailwind CSS](https://tailwindcss.com) + `tailwindcss-animate` |
-| UI primitives | Custom components (shadcn/ui-inspired), `lucide-react` icons |
-| Drag & drop | `@dnd-kit/core` + `@dnd-kit/sortable` (menu builder) |
-| State | [Zustand](https://github.com/pmndrs/zustand) (cart, client state) |
-| QR codes | `qrcode` |
-| i18n | JSON dictionaries in `i18n/` (en, es, fr, ja, zh) with a coverage checker |
-| Error tracking | [Sentry](https://sentry.io) |
-| Unit tests | [Vitest](https://vitest.dev) + Testing Library |
-| E2E / RLS tests | [Playwright](https://playwright.dev) |
-| Deployment | [OpenNext for Cloudflare](https://opennext.js.org/cloudflare) (also Vercel-compatible) |
+| Layer           | Choice                                                                                 |
+| --------------- | -------------------------------------------------------------------------------------- |
+| Framework       | [Next.js 16](https://nextjs.org) (App Router) + React 19                               |
+| Language        | TypeScript                                                                             |
+| Backend / DB    | [Supabase](https://supabase.com) — Postgres, Auth, Realtime, RLS                       |
+| Supabase SSR    | `@supabase/ssr` for cookie-based sessions across server/client/middleware              |
+| Styling         | [Tailwind CSS](https://tailwindcss.com) + `tailwindcss-animate`                        |
+| UI primitives   | Custom components (shadcn/ui-inspired), `lucide-react` icons                           |
+| Drag & drop     | `@dnd-kit/core` + `@dnd-kit/sortable` (menu builder)                                   |
+| State           | [Zustand](https://github.com/pmndrs/zustand) (cart, client state)                      |
+| QR codes        | `qrcode`                                                                               |
+| i18n            | JSON dictionaries in `i18n/` (en, es, fr, ja, zh) with a coverage checker              |
+| Error tracking  | [Sentry](https://sentry.io)                                                            |
+| Unit tests      | [Vitest](https://vitest.dev) + Testing Library                                         |
+| E2E / RLS tests | [Playwright](https://playwright.dev)                                                   |
+| Deployment      | [OpenNext for Cloudflare](https://opennext.js.org/cloudflare) (also Vercel-compatible) |
 
 ## Project Structure
 
@@ -73,6 +93,7 @@ scripts/                              i18n coverage checker, etc.
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js 20+
 - A Supabase project ([create one](https://database.new))
 
